@@ -1,6 +1,6 @@
-module IdrisWeb.DB.SQLite.SQLiteNew
+module DB.SQLite.SQLiteNew
 import Effects
-import IdrisWeb.DB.SQLite.SQLiteCodes
+import DB.SQLite.SQLiteCodes
 
 %link C "sqlite3api.o"
 %include C "sqlite3api.h"
