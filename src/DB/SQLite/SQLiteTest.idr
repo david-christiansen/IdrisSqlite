@@ -5,63 +5,45 @@ import DB.SQLite.SQLiteNew
 import DB.SQLite.SQLiteCodes
 
 
-testInsert : String -> Int -> EffM IO [SQLITE ()] [SQLITE ()] (Either SQLiteCode ())
-testInsert name age = do 
-  open_db <- openDB "test.db"
-  if_valid then do
-    let sql = "INSERT INTO `test` (`name`, `age`) VALUES (?, ?);"
-    prep_res <- prepareStatement sql
-    if_valid then do
-      bindText 1 name 
-      bindInt 2 age
-      bind_res <- finishBind
-      if_valid then do
-        executeStatement
-        finalise 
-        closeDB
-        Effects.pure $ Right ()
-      else do
-        cleanupBindFail
-        Effects.pure $ (Left (-1))
-    else do
-      cleanupPSFail
---                  let (Left err) = prep_res
-      Effects.pure $ Left (-2)
-  else do
---                let (Left err) = open_db
-    Effects.pure $ Left (-3)
-
-
-collectResults : EffM IO [SQLITE (Either (SQLiteExecuting InvalidRow) 
-                                        (SQLiteExecuting ValidRow))] 
-                         [SQLITE (SQLiteExecuting InvalidRow)] 
-                         (List (String, Int))
-collectResults = 
-  if_valid then do
-    name <- getColumnText 0
-    age <- getColumnInt 1
-    step_result <- nextRow
-    xs <- collectResults
-    Effects.pure $ (name, age) :: xs
-  else Effects.pure []
+testInsert : String -> Int -> { [SQLITE ()] } Eff IO (Either QueryError ())
+testInsert name age =
+  do open_db <- openDB "test.db"
+     case open_db of
+       Left err => return $ Left err
+       Right () =>
+         do let sql = "INSERT INTO `test` (`name`, `age`) VALUES (?, ?);"
+            prep_res <- prepareStatement sql
+            case prep_res of
+              Left err => do cleanupPSFail ; return $ Left err
+              Right () =>
+                do bindText 1 name
+                   bindInt 2 age
+                   bind_res <- finishBind
+                   case bind_res of
+                     Just err => do cleanupBindFail ; return $ Left err
+                     Nothing =>
+                       case !executeStatement of
+                         Unstarted => do finalise
+                                         closeDB
+                                         pure (Right ())
+                         StepFail => do finalise
+                                        closeDB
+                                        pure (Right ())
+                         StepComplete => do finalise
+                                            closeDB
+                                            pure (Right ())
+                         NoMoreRows => do finalise
+                                          closeDB
+                                          pure (Right ())
 
 {-
-  step_result <- nextRow
-  case step_result of
-      StepComplete => do name <- getColumnText 1
-                         age <- getColumnInt 2
-                         xs <- collectResults
-                         Effects.pure $ (name, age) :: xs
-      NoMoreRows => Effects.pure []
-      StepFail => Effects.pure []
--}
 
 
-testSelect : Eff IO [SQLITE ()] (Either Int (List (String, Int)))
+testSelect : Eff IO [SQLITE ()] (Either Int (List (String, String)))
 testSelect = do
   open_db <- openDB "test.db"
   if_valid then do
-    let sql = "SELECT * FROM `test`;"
+    let sql = "SELECT `name`, `sql` FROM `sqlite_master`;"
     sql_prep_res <- prepareStatement sql
     if_valid then do 
       finishBind
@@ -76,7 +58,7 @@ testSelect = do
     else do cleanupPSFail
             Effects.pure $ Left (-2)
   else Effects.pure $ Left (-3)
-  
+  -}
 
 namespace Main
   main : IO ()
@@ -95,4 +77,6 @@ main = do insert_res <- run [()] (testInsert "Simon" 21)
             Right _ => putStrLn $ "Operation completed successfully."
 -}
 
-
+-- -}
+-- -}
+-- -}

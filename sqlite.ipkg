@@ -1,6 +1,6 @@
 package sqlite
 
-opts = "-p effects"
+opts = "-p neweffects"
 sourcedir = src
 modules = DB.SQLite.SQLiteNew, DB.SQLite.SQLiteCodes
 

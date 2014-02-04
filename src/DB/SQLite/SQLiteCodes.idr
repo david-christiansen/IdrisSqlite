@@ -2,6 +2,7 @@ module DB.SQLite.SQLiteCodes
 -- Status codes for SQLite
 
 %access public
+%default total
 
 SQLiteCode : Type
 SQLiteCode = Int
@@ -108,9 +109,14 @@ data StepResult = Unstarted
 
 
 -- FIXME: For some reason, pattern matching doesn't work
--- when using the 
-stepResult : Int -> StepResult 
+-- when using the
+stepResult : Int -> StepResult
 stepResult 100 = StepComplete -- step complete, but more data available
 stepResult 101 = NoMoreRows -- statement has been fully executed
 stepResult _ = StepFail -- an error occurred
 
+hasMoreRows : StepResult -> Bool
+hasMoreRows NoMoreRows = False
+hasMoreRows StepComplete = True
+hasMoreRows StepFail = True
+hasMoreRows Unstarted = True
