@@ -525,30 +525,7 @@ executeSelect db_name q bind_vals fn =
                             NoMoreRows => do finalise
                                              closeDB
                                              return $ Right []
-  {-
-  conn_res <- openDB db_name
-  if_valid then do
-    ps_res <- prepareStatement q
-    if_valid then do
-      bind_res <- multiBind bind_vals
-      if_valid then do
-        executeStatement
-        res <- collectResults fn
-        finaliseInvalid
-        closeDB
-        return $ Right res
-      else do
-        let be = getBindError bind_res
-        cleanupBindFail
-        return $ Left be
-    else do
-      cleanupPSFail
-      return $ Left (getQueryError ps_res)
-  else
-    return $ Left (getQueryError conn_res)
 
--- Helper function for when there's no binding needed to the PS
--- noBinds : EffM IO [SQLITE (
 
 -- -}
 -- -}

@@ -58,13 +58,6 @@ namespace Main
               Left err => putStrLn $ "Error reading: " ++ show err
               Right res => putStrLn (show res)
 
-{-
-main : IO ()
-main = do insert_res <- run [()] (testInsert "Simon" 21)
-          case insert_res of 
-            Left err => putStrLn $ "Error inserting" ++ (show err)
-            Right _ => putStrLn $ "Operation completed successfully."
--}
 
 -- -}
 -- -}
