@@ -1,7 +1,7 @@
 module DB.SQLite.SQLiteTest
 
 import Effects
-import DB.SQLite.SQLiteNew
+import DB.SQLite.Effect
 import DB.SQLite.SQLiteCodes
 
 
@@ -36,29 +36,16 @@ testInsert name age =
                                           closeDB
                                           pure (Right ())
 
-{-
 
 
-testSelect : Eff IO [SQLITE ()] (Either Int (List (String, String)))
-testSelect = do
-  open_db <- openDB "test.db"
-  if_valid then do
-    let sql = "SELECT `name`, `sql` FROM `sqlite_master`;"
-    sql_prep_res <- prepareStatement sql
-    if_valid then do 
-      finishBind
-      if_valid then do
-        executeStatement
-        results <- collectResults
-        finaliseInvalid
-        closeDB
-        Effects.pure $ Right results
-      else do cleanupBindFail
-              Effects.pure $ Left (-1)
-    else do cleanupPSFail
-            Effects.pure $ Left (-2)
-  else Effects.pure $ Left (-3)
-  -}
+
+testSelect : { [SQLITE ()] } Eff IO (Either QueryError ResultSet)
+testSelect =
+  executeSelect "test.db" "SELECT `name`, `sql` FROM `sqlite_master`;" [] $
+  do name <- getColumnText 0
+     sql <- getColumnText 1
+     return [DBText name, DBText sql]
+
 
 namespace Main
   main : IO ()
@@ -66,10 +53,10 @@ namespace Main
             case select_res of
                  Left err => putStrLn $ "Error: " ++ (show err)
                  Right () => putStrLn $ "Done"
-
--- do traverse (putStrLn . show) results
-  --                                   pure ()
-
+            select_res <- run $ testSelect
+            case select_res of
+              Left err => putStrLn $ "Error reading: " ++ show err
+              Right res => putStrLn (show res)
 
 {-
 main : IO ()

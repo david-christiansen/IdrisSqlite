@@ -15,6 +15,12 @@ data DBVal = DBInt Int
            | DBFloat Float
            | DBNull
 
+instance Show DBVal where
+  show (DBInt i) = "DBInt " ++ show i
+  show (DBText t) = "DBText " ++ show t
+  show (DBFloat f) = "DBFloat " ++ show f
+  show DBNull = "DBNull"
+
 -- Type synonym for a table
 ResultSet : Type
 ResultSet = List (List DBVal)
