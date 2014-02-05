@@ -62,11 +62,13 @@ testSelect = do
 
 namespace Main
   main : IO ()
-  main = do select_res <- run [()] testSelect
+  main = do select_res <- run $ testInsert "foo" 29
             case select_res of
                  Left err => putStrLn $ "Error: " ++ (show err)
-                 Right results => do traverse (putStrLn . show) results
-                                     pure ()
+                 Right () => putStrLn $ "Done"
+
+-- do traverse (putStrLn . show) results
+  --                                   pure ()
 
 
 {-
