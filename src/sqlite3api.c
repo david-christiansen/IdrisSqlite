@@ -322,11 +322,11 @@ void* sqlite3_bind_int_idr(void* p,int index, int val){
 	return dbi;
 }
 
-void* sqlite3_bind_float_idr(void* p,int index, float val){
+void* sqlite3_bind_double_idr(void* p,int index, double val){
 	
 	DBinfo* dbi =(DBinfo*) p;
 	int rc;
-	double res =(float)val;
+	double res =(double)val;
 
 	rc =sqlite3_bind_double(dbi->ppStmt,index,res);
 	
@@ -475,6 +475,19 @@ int sqlite3_column_int_idr(void* db, int iCol){
 	return res;
 	
 }
+
+
+/* True iff the column contains the NULL value */
+int sqlite3_column_null_idr(void* db, int iCol) {
+  DBinfo* dbi = (DBinfo *) db;
+  return sqlite3_column_type(dbi->ppStmt, iCol) == SQLITE_NULL;
+}
+
+double sqlite3_column_double_idr(void* db, int iCol) {
+  DBinfo* dbi = (DBinfo *) db;
+  return sqlite3_column_double(dbi->ppStmt, iCol);
+}
+
 /*
  Some back up functions
  */

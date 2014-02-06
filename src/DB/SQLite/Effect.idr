@@ -1,10 +1,13 @@
-module DB.SQLite.SQLiteNew
+module DB.SQLite.Effect
 import Effects
 import DB.SQLite.SQLiteCodes
 
 %link C "sqlite3api.o"
 %include C "sqlite3api.h"
 %lib C "sqlite3"
+
+%dynamic "libsqlite3"
+%dynamic "./sqlite3api.so"
 %access public
 
 data ConnectionPtr = ConnPtr Ptr
@@ -126,6 +129,8 @@ data Sqlite : Effect where
   GetColumnDataSize : Column -> { SQLiteExecuting ValidRow } Sqlite Int
   GetColumnText : Column -> { SQLiteExecuting ValidRow } Sqlite String
   GetColumnInt : Column -> { SQLiteExecuting ValidRow } Sqlite Int
+  GetColumnFloat : Column -> { SQLiteExecuting ValidRow } Sqlite Float
+  IsColumnNull : Column -> { SQLiteExecuting ValidRow } Sqlite Bool
 
   -- Finalisation Functions
   Finalise : { SQLiteExecuting s ==> SQLiteConnected } Sqlite ()
@@ -186,7 +191,7 @@ instance Handler Sqlite IO where
                              k () (SQLiteBindFail (ConnPtr conn) (PSPtr res) (BE pos err))
 
   handle (SQLitePS (ConnPtr conn) (PSPtr res)) (BindFloat pos f) k = do
-    res <- mkForeign (FFun "sqlite3_bind_float_idr" [FPtr, FInt, FFloat] FPtr) conn pos f
+    res <- mkForeign (FFun "sqlite3_bind_double_idr" [FPtr, FInt, FFloat] FPtr) conn pos f
     is_null <- nullPtr res
     if (not is_null) then k () (SQLitePS (ConnPtr conn) (PSPtr res))
                      else do err <- foreignGetError (ConnPtr conn)
@@ -248,9 +253,17 @@ instance Handler Sqlite IO where
     res <- mkForeign (FFun "sqlite3_column_int_idr" [FPtr, FInt] FInt) c i
     k res (SQLiteE (ConnPtr c) (PSPtr p))
 
+  handle (SQLiteE (ConnPtr c) (PSPtr p)) (GetColumnFloat i) k = do
+    res <- mkForeign (FFun "sqlite3_column_double_idr" [FPtr, FInt] FFloat) c i
+    k res (SQLiteE (ConnPtr c) (PSPtr p))
+
   handle (SQLiteE (ConnPtr c) (PSPtr p)) (GetColumnText i) k = do
     res <- mkForeign (FFun "sqlite3_column_text_idr" [FPtr, FInt] FString) c i
     k res (SQLiteE (ConnPtr c) (PSPtr p))
+
+  handle (SQLiteE (ConnPtr c) (PSPtr p)) (IsColumnNull i) k = do
+    res <- mkForeign (FFun "sqlite3_column_null_idr" [FPtr, FInt] FInt) c i
+    k (res /= 0) (SQLiteE (ConnPtr c) (PSPtr p))
 
   -- Resetting our position
   handle (SQLiteE (ConnPtr c) (PSPtr p)) (Reset) k = do
@@ -339,11 +352,17 @@ reset = Reset
 getColumnName : Column -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff IO String
 getColumnName col = GetColumnName col
 
-getColumnText: Column -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff IO String
+getColumnText : Column -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff IO String
 getColumnText col = GetColumnText col
 
 getColumnInt : Column -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff IO Int
 getColumnInt col = GetColumnInt col
+
+getColumnFloat : Column -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff IO Float
+getColumnFloat col = GetColumnFloat col
+
+isColumnNull : Column -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff IO Bool
+isColumnNull col = IsColumnNull col
 
 getColumnDataSize : Column -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff IO Int
 getColumnDataSize col = GetColumnDataSize col
@@ -525,7 +544,6 @@ executeSelect db_name q bind_vals fn =
                             NoMoreRows => do finalise
                                              closeDB
                                              return $ Right []
-
 
 -- -}
 -- -}

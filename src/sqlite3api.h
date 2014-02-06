@@ -80,7 +80,7 @@ void* sqlite3_prepare_idr(
 
 int sqlite3_step_idr(void* stmt);
 
-void* sqlite3_bind_float_idr(void* p,int index, float val);
+void* sqlite3_bind_double_idr(void* p,int index, double val);
 
 void* sqlite3_bind_int_idr(void* p,int index , int val);
 
@@ -112,6 +112,9 @@ const unsigned char *sqlite3_column_text_idr(void* stmt, int iCol);
 
 int sqlite3_column_int_idr(void* stmt, int iCol);
 
+int sqlite3_column_null_idr(void* db, int iCol);
+
+double sqlite3_column_double_idr(void* db, int iCol);
 
 void* sqlite3_backup_init_idr(void* pDestm,
 							  const char *zDestName,
