@@ -7,7 +7,7 @@ import Queries
 
 sqltype : Parser SQLiteType
 sqltype = the (Parser _) $
-          (do token "int"  <|> token "int"
+          (do token "int"  <|> token "integer"
               pure INTEGER)
       <|> (do token "text" <|> token "string"
               pure TEXT)
