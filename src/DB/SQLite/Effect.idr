@@ -7,7 +7,7 @@ import DB.SQLite.SQLiteCodes
 %lib C "sqlite3"
 
 %dynamic "libsqlite3"
-%dynamic "./sqlite3api.so"
+%dynamic "sqlite3api.so"
 %access public
 
 data ConnectionPtr = ConnPtr Ptr
