@@ -1,9 +1,9 @@
 package sqlite
 
-opts = "-p neweffects"
+opts = "-p effects"
 sourcedir = src
 modules = DB.SQLite.Effect, DB.SQLite.SQLiteCodes
 
 makefile = MakefileC
-objs = sqlite3api.o, sqlite3api.h
+objs = sqlite3api.so, sqlite3api.o, sqlite3api.h
 
