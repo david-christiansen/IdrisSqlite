@@ -4,6 +4,7 @@ import Provider
 
 import Database
 import Queries
+import ErrorHandlers
 
 %language TypeProviders
 
@@ -11,18 +12,34 @@ import Queries
 %include C "sqlite3api.h"
 %lib C "sqlite3"
 
+
+
+
 %provide (db : DB "test.sqlite") with run (getSchemas "test.sqlite")
+
+
+
 
 foos : Query db ["foo":::INTEGER]
 foos = SELECT (["foo":::INTEGER]) FROM "test" WHERE (Col "foo" == Col "foo")
 
+
+
+
+
+
 people : Query db ["name":::TEXT]
 people = SELECT ["name":::TEXT] FROM "people" WHERE 1
 
-transit : Query db ["name":::TEXT, "wheels":::INTEGER]
-transit = SELECT ["name":::TEXT, "wheels":::INTEGER]
+
+
+
+
+transit : Query db ["name":::TEXT, "age":::NULLABLE INTEGER, "wheels":::INTEGER, "description" ::: TEXT]
+transit = SELECT ["name":::TEXT, "age":::NULLABLE INTEGER, "wheels":::INTEGER, "description":::TEXT]
           FROM "people" * "transport"
           WHERE Col "name" == Col "owner"
+
 
 printRes : Query db s -> IO ()
 printRes q = do res <- runInit [()] (query q)
@@ -37,3 +54,11 @@ namespace Main
             putStrLn "ok"
 
 
+-- -}
+-- -}
+-- -}
+-- -}
+
+-- Local Variables:
+-- idris-packages: ("lightyear" "sqlite" "neweffects")
+-- End:
