@@ -3,7 +3,6 @@ module Database
 import Schema
 
 import Decidable.Equality
-import Uninhabited
 
 data DB : String -> Type where
   MkDB : (dbFile : String) ->

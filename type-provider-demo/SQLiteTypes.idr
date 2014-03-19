@@ -1,12 +1,12 @@
 module SQLiteTypes
 
 import Decidable.Equality
-import Uninhabited
 
 %default total
 
 
-data SQLiteType = TEXT | INTEGER | REAL | NULLABLE SQLiteType
+data SQLiteType = TEXT | INTEGER | REAL
+                | NULLABLE SQLiteType
 
 interpSql : SQLiteType -> Type
 interpSql TEXT = String

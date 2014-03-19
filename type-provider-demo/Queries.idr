@@ -5,10 +5,12 @@ import Schema
 import Database
 
 import Decidable.Equality
-import Uninhabited
 import Language.Reflection
+import Language.Reflection.Errors
+import Language.Reflection.Utils
 
 %default total
+%language ErrorReflection
 
 namespace Row
   data Row : Schema -> Type where
@@ -111,13 +113,14 @@ namespace Query
   -- TMP HACK! FIXME!
   -- The evaluator needs a 'function case' to know its a reflection function
   -- until we propagate that information! Without this, the _ case won't get
-  -- matched. 
+  -- matched.
   reflectListPrf (x ++ y) = Refine "Here" `Seq` Solve
   reflectListPrf _ = Refine "Here" `Seq` Solve
 
   %reflection
   solveHasTable : Type -> Tactic
   solveHasTable (HasTable ts n s) = reflectListPrf ts `Seq` Solve
+  solveHasTable (HasTable (x ++ y) n s) = Solve
 
 
   tryHasTable : Nat -> List (TTName, TT) -> TT -> Tactic
@@ -180,23 +183,12 @@ namespace Query
                                        compileExpr expr ++
                                        ";"
     where cols : String
-          cols = Foldable.concat . intersperse ", " . colNames $ proj
+          cols = Foldable.concat . List.intersperse ", " . colNames $ proj
 
 
 
 
 
-humans : Schema
-humans = ["name" ::: TEXT, "age" ::: INTEGER]
-
-a : Table humans
-a = [["David",29],["Lisbet", 31]]
-
-bikes : Schema
-bikes = ["wheels":::INTEGER]
-
-b : Table bikes
-b = [[1],[2],[2]]
 
 -- -}
 -- -}

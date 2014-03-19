@@ -3,7 +3,6 @@ module Schema
 import SQLiteTypes
 
 import Decidable.Equality
-import Uninhabited
 import Language.Reflection
 
 %default total
