@@ -2,6 +2,8 @@ module DB.SQLite.Effect
 import Effects
 import DB.SQLite.SQLiteCodes
 
+%default total
+
 %link C "sqlite3api.o"
 %include C "sqlite3api.h"
 %lib C "sqlite3"
@@ -389,7 +391,7 @@ getQueryError : Either QueryError b -> QueryError
 getQueryError (Left qe) = qe
 getQueryError _ = InternalError
 
-
+total
 multiBind' : List (Int, DBVal) -> { [SQLITE (SQLitePSSuccess Binding)] } Eff IO ()
 multiBind' [] = Effects.pure ()
 multiBind' ((pos, (DBInt i)) :: xs) = do bindInt pos i
@@ -398,7 +400,10 @@ multiBind' ((pos, (DBFloat f)) :: xs) = do bindFloat pos f
                                            multiBind' xs
 multiBind' ((pos, (DBText t)) :: xs) = do bindText pos t
                                           multiBind' xs
+multiBind' ((pos, DBNull) :: xs) = do bindNull pos
+                                      multiBind' xs
 -- Binds multiple values within a query
+
 multiBind : List (Int, DBVal) ->
             { [SQLITE (SQLitePSSuccess Binding)] ==>
               [SQLITE (maybe (SQLitePSSuccess Bound) (const SQLiteFinishBindFail) result)] }
@@ -493,8 +498,8 @@ executeInsert db_name query bind_vals =
                                   getRowCount
 
 
-
 -- Helper functions for selection from a DB
+partial
 collectResults : ({ [SQLITE (SQLiteExecuting ValidRow)] } Eff IO (List DBVal)) ->
                  { [SQLITE (SQLiteExecuting ValidRow)] ==>
                    [SQLITE (SQLiteExecuting InvalidRow)] } Eff IO ResultSet
@@ -511,6 +516,7 @@ collectResults fn =
 -- Convenience function to abstract around some of the boilerplate code.
 -- Takes in the DB name, query, a list of (position, variable value) tuples,
 -- a function to process the returned data,
+partial
 executeSelect : (db_name : String) -> (q : String) -> List (Int, DBVal) ->
                 ({ [SQLITE (SQLiteExecuting ValidRow)] } Eff IO (List DBVal)) ->
                 { [SQLITE ()] } Eff IO (Either QueryError ResultSet)
@@ -550,5 +556,5 @@ executeSelect db_name q bind_vals fn =
 -- -}
 
 -- Local Variables:
--- idris-packages: ("neweffects")
+-- idris-packages: ("effects" "sqlite")
 -- End:
