@@ -521,35 +521,27 @@ executeSelect : (db_name : String) -> (q : String) -> List (Int, DBVal) ->
                 ({ [SQLITE (SQLiteExecuting ValidRow)] } Eff IO (List DBVal)) ->
                 { [SQLITE ()] } Eff IO (Either QueryError ResultSet)
 executeSelect db_name q bind_vals fn =
-  do conn_res <- openDB db_name
-     case conn_res of
-       Left err => return $ Left err
-       Right () =>
-         do ps_res <- prepareStatement q
-            case ps_res of
-              Left err => do cleanupPSFail
-                             return $ Left err
-              Right () =>
-                do bind_res <- multiBind bind_vals
-                   case bind_res of
-                     Just err => do cleanupBindFail ; return $ Left err
-                     Nothing =>
-                       do case !executeStatement of
-                            Unstarted => do res <- collectResults fn
-                                            finalise
-                                            closeDB
-                                            return $ Right res
-                            StepFail => do res <- collectResults fn
-                                           finalise
-                                           closeDB
-                                           return $ Right res
-                            StepComplete => do res <- collectResults fn
-                                               finalise
-                                               closeDB
-                                               return $ Right res
-                            NoMoreRows => do finalise
-                                             closeDB
-                                             return $ Right []
+  do Right () <- openDB db_name | Left err => return (Left err)
+     Right () <- prepareStatement q | Left err => do cleanupPSFail
+                                                     return $ Left err
+     Nothing <- multiBind bind_vals | Just err => do cleanupBindFail
+                                                     return $ Left err
+     case !executeStatement of
+       Unstarted => do res <- collectResults fn
+                       finalise
+                       closeDB
+                       return $ Right res
+       StepFail => do res <- collectResults fn
+                      finalise
+                      closeDB
+                      return $ Right res
+       StepComplete => do res <- collectResults fn
+                          finalise
+                          closeDB
+                          return $ Right res
+       NoMoreRows => do finalise
+                        closeDB
+                        return $ Right []
 
 -- -}
 -- -}
