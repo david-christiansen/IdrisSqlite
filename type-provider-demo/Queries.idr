@@ -169,7 +169,7 @@ namespace Query
 
   data Query : DB f -> Schema -> Type where
     Select : {db : DB f} -> Tables db s -> Expr s INTEGER -> (s' : Schema) ->
-             {ok : SubSchema s' s} -> {auto solveIt : decSubSchema s' s = Yes ok} ->
+             {ok : SubSchema s' s} -> {default refl solveIt : decSubSchema s' s = Yes ok} ->
              Query db s'
 
   syntax SELECT [schema] FROM [tables] WHERE [expr] = Select tables expr schema

@@ -4,7 +4,7 @@ import Provider
 
 import Database
 import Queries
-import ErrorHandlers
+--import ErrorHandlers
 
 %language TypeProviders
 
@@ -41,6 +41,7 @@ transit = SELECT ["name":::TEXT, "age":::NULLABLE INTEGER, "wheels":::INTEGER, "
           WHERE Col "name" == Col "owner"
 
 
+
 printRes : Query db s -> IO ()
 printRes q = do res <- runInit [()] (query q)
                 case res of
@@ -60,5 +61,5 @@ namespace Main
 -- -}
 
 -- Local Variables:
--- idris-packages: ("lightyear" "sqlite" "neweffects")
+-- idris-packages: ("lightyear" "sqlite" "effects")
 -- End:

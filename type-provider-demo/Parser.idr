@@ -15,7 +15,7 @@ sqltype = the (Parser _) $
               pure REAL)
 
 name : Parser String
-name = do n <- many (satisfy (\c => c >= 'a' && c <= 'z'))
+name = do n <- many (satisfy (\c => c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'))
           return (pack n)
 
 nullable : Parser Bool

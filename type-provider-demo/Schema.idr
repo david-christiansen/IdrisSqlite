@@ -24,10 +24,18 @@ attrEta (x ::: y) = refl
 attrInj : (c ::: t = c' ::: t') -> (c=c', t=t')
 attrInj refl = (refl, refl)
 
+-- the first case forces it to get stuck if the constants are not in canonical form
+foo : (x : String) -> (y : String) -> Dec (x = y)
+foo "" "" = Yes refl
+foo x y with (decEq x y)
+  foo x y | Yes _ = Yes (really_believe_me (refl {x}))
+  foo x y | No urgh = No urgh
+
+
 instance DecEq Attribute where
-  decEq (x ::: y) (z ::: w) with (decEq x z, decEq y w)
+  decEq (x ::: y) (z ::: w) with (foo x z, decEq y w)
     decEq (x ::: y) (x ::: y) | (Yes refl, Yes refl) = Yes refl
-    decEq (x ::: y) (x ::: w) | (Yes refl, No prf)   = No $ prf . snd . attrInj
+    decEq (x ::: y) (x ::: w) | (Yes refl, No prf) = No $ prf . snd . attrInj
     decEq (x ::: y) (z ::: w) | (No prf, _) = No $ prf . fst . attrInj
 
 data Schema = Nil | (::) Attribute Schema
@@ -77,7 +85,7 @@ decHasColLemma h1 h2 (There x) = h1 x
 decHasCol : (s : Schema) -> (attr : Attribute) -> Dec (HasCol s attr)
 decHasCol [] attr = No HasColNotEmpty
 decHasCol (attr' :: s) attr with (decEq attr' attr)
-  decHasCol (attr' :: s) attr' | (Yes refl) = Yes Here
+  decHasCol (attr' :: s) attr' | (Yes p) = rewrite p in Yes Here
   decHasCol (attr' :: s) attr | (No f) with (decHasCol s attr)
     decHasCol (attr' :: s) attr | (No f) | (Yes x) = Yes (There x)
     decHasCol (attr' :: s) attr | (No f) | (No g) = No $ \h => decHasColLemma g f h
@@ -112,7 +120,6 @@ decSubSchema (attr :: s) s2 with (decSubSchema s s2)
     decSubSchema (attr :: s) s2 | (Yes x) | (Yes y) = Yes (Head x y)
     decSubSchema (attr :: s) s2 | (Yes x) | (No f) = No $ decSubSchema_lemma2 f
   decSubSchema (attr :: s) s2 | (No f) = No $ decSubSchema_lemma f
-
 
 
 HasColNamed : Schema -> String -> Type

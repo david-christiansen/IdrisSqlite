@@ -505,8 +505,7 @@ collectResults : ({ [SQLITE (SQLiteExecuting ValidRow)] } Eff IO (List DBVal)) -
                    [SQLITE (SQLiteExecuting InvalidRow)] } Eff IO ResultSet
 collectResults fn =
   do results <- fn
-     step_res <- nextRow
-     case step_res of
+     case !nextRow of
        Unstarted => return $ results :: !(collectResults fn)
        StepFail => return $ results :: !(collectResults fn)
        StepComplete => return $ results :: !(collectResults fn)

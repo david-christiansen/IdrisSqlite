@@ -6,16 +6,19 @@ import DB.SQLite.Effect
 import Effects
 
 import Database
-import Parser
+import ParserHack
+import Queries
 
 %language TypeProviders
 
 mkDB : ResultSet -> Either String (List (String, Schema))
-mkDB [] = pure []
+mkDB [] = Right []
 mkDB ([DBText v]::rest) =
-  case parse table (toLower v) of
-    Left err => Left ( "Couldn't parse schema '" ++ v ++ "'\n" ++ err)
-    Right (t, tbl) => [| pure (t, tbl) :: mkDB rest |]
+  case getSchema (toLower v) of
+    Nothing => Left ( "Couldn't parse schema '" ++ v ++ "'\n")
+    Just (t, tbl) =>
+      with Applicative
+        Right List.(::) <$> Right (t, tbl) <$> mkDB rest
 mkDB _ = Left "Couldn't understand SQLite output - wrong type"
 
 getSchemas : (filename : String) -> { [SQLITE ()] } Eff IO (Provider (DB filename))
