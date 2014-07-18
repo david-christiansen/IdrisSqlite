@@ -4,7 +4,7 @@ import Provider
 
 import Database
 import Queries
---import ErrorHandlers
+import ErrorHandlers
 
 %language TypeProviders
 
@@ -21,7 +21,7 @@ import Queries
 
 
 foos : Query db ["foo":::INTEGER]
-foos = SELECT (["foo":::INTEGER]) FROM "test" WHERE (Col "foo" == Col "foo")
+foos = SELECT (["foo":::INTEGER]) FROM "test" WHERE (Col "food" == Col "food")
 
 
 
@@ -61,5 +61,5 @@ namespace Main
 -- -}
 
 -- Local Variables:
--- idris-packages: ("lightyear" "sqlite" "effects")
+-- idris-packages: ("lightyear" "sqlite" "neweffects")
 -- End:

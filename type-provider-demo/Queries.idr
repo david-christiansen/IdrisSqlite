@@ -174,7 +174,7 @@ namespace Query
 
   syntax SELECT [schema] FROM [tables] WHERE [expr] = Select tables expr schema
 
-  compileQuery : {db : DB f} -> Query db s -> String
+  compileQuery : {db : DB f} -> Query db proj -> String
   compileQuery (Select ts expr proj) = "SELECT " ++
                                        cols ++
                                        " FROM " ++

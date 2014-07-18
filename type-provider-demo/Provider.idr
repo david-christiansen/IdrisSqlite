@@ -21,7 +21,7 @@ mkDB ([DBText v]::rest) =
         Right List.(::) <$> Right (t, tbl) <$> mkDB rest
 mkDB _ = Left "Couldn't understand SQLite output - wrong type"
 
-getSchemas : (filename : String) -> { [SQLITE ()] } Eff IO (Provider (DB filename))
+getSchemas : (filename : String) -> { [SQLITE ()] } Eff (Provider (DB filename))
 getSchemas file =
   do resSet <- executeSelect file "SELECT `sql` FROM `sqlite_master`;" [] $
                do sql <- getColumnText 0
@@ -32,12 +32,12 @@ getSchemas file =
                       Left err => pure (Error err)
                       Right db => pure (Provide (MkDB file db))
 
-getRow : (s : Schema) -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff IO (Row s)
+getRow : (s : Schema) -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff (Row s)
 getRow s = go 0 s
-  where go : Int -> (s : Schema) -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff IO (Row s)
+  where go : Int -> (s : Schema) -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff (Row s)
         go i []          = pure []
         go i ((_ ::: ty) :: s) = [| getCol ty :: go (i+1) s |]
-          where getCol : (t : SQLiteType) -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff IO (interpSql t)
+          where getCol : (t : SQLiteType) -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff (interpSql t)
                 getCol TEXT = getColumnText i
                 getCol INTEGER = do int <- getColumnInt i
                                     pure (cast int)
@@ -49,7 +49,7 @@ getRow s = go 0 s
                                                    pure (Just val)
 
 collectRows : (s : Schema) -> { [SQLITE (SQLiteExecuting ValidRow)] ==>
-                                [SQLITE (SQLiteExecuting InvalidRow)] } Eff IO (Table s)
+                                [SQLITE (SQLiteExecuting InvalidRow)] } Eff (Table s)
 collectRows s = do row <- getRow s
                    case !nextRow of
                      Unstarted => pure $ row :: !(collectRows s)
@@ -58,7 +58,7 @@ collectRows s = do row <- getRow s
                      NoMoreRows => pure [row]
 
 query : {file : String} -> {db : DB file} -> Query db s ->
-        { [SQLITE ()] } Eff IO (Either QueryError (Table s))
+        { [SQLITE ()] } Eff (Either QueryError (Table s))
 query {file=fn} q =
   case !(openDB fn) of
     Left err => pure $ Left err
