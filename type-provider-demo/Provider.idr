@@ -1,13 +1,16 @@
 module Provider
 
-import Providers
+import public Providers
 
 import DB.SQLite.Effect
+import DB.SQLite.SQLiteCodes
 import Effects
 
 import Database
 import ParserHack
 import Queries
+import Schema
+import SQLiteTypes
 
 %language TypeProviders
 
@@ -88,7 +91,4 @@ query {file=fn} q =
                                  pure (Right [])
 
 
--- Local Variables:
--- idris-packages: ("lightyear" "sqlite" "neweffects")
--- End:
  

@@ -30,43 +30,43 @@ showSql (NULLABLE ty) (Just x) = showSql ty x
 showSql (NULLABLE ty) Nothing = "null"
 
 
-integerNotText : INTEGER = TEXT -> _|_
-integerNotText refl impossible
+integerNotText : INTEGER = TEXT -> Void
+integerNotText Refl impossible
 
-realNotText : REAL = TEXT -> _|_
-realNotText refl impossible
+realNotText : REAL = TEXT -> Void
+realNotText Refl impossible
 
-nullableNotText : NULLABLE t = TEXT -> _|_
-nullableNotText refl impossible
+nullableNotText : NULLABLE t = TEXT -> Void
+nullableNotText Refl impossible
 
-realNotInteger : REAL = INTEGER -> _|_
-realNotInteger refl impossible
+realNotInteger : REAL = INTEGER -> Void
+realNotInteger Refl impossible
 
-nullableNotInteger : NULLABLE t = INTEGER -> _|_
-nullableNotInteger refl impossible
+nullableNotInteger : NULLABLE t = INTEGER -> Void
+nullableNotInteger Refl impossible
 
-nullableNotReal : NULLABLE t = REAL -> _|_
-nullableNotReal refl impossible
+nullableNotReal : NULLABLE t = REAL -> Void
+nullableNotReal Refl impossible
 
 
 instance DecEq SQLiteType where
-  decEq TEXT TEXT = Yes refl
+  decEq TEXT TEXT = Yes Refl
   decEq INTEGER TEXT = No integerNotText
   decEq REAL TEXT = No realNotText
   decEq (NULLABLE x) TEXT = No nullableNotText
   decEq TEXT INTEGER = No $ integerNotText . sym
-  decEq INTEGER INTEGER = Yes refl
+  decEq INTEGER INTEGER = Yes Refl
   decEq REAL INTEGER = No realNotInteger
   decEq (NULLABLE x) INTEGER = No nullableNotInteger
   decEq TEXT REAL = No $ realNotText . sym
   decEq INTEGER REAL = No $ realNotInteger . sym
-  decEq REAL REAL = Yes refl
+  decEq REAL REAL = Yes Refl
   decEq (NULLABLE x) REAL = No nullableNotReal
   decEq TEXT (NULLABLE x) = No $ nullableNotText . sym
   decEq INTEGER (NULLABLE x) = No $ nullableNotInteger . sym
   decEq REAL (NULLABLE x) = No $ nullableNotReal . sym
   decEq (NULLABLE y) (NULLABLE x) with (decEq y x)
-    decEq (NULLABLE x) (NULLABLE x) | (Yes refl) = Yes refl
+    decEq (NULLABLE x) (NULLABLE x) | (Yes Refl) = Yes Refl
     decEq (NULLABLE y) (NULLABLE x) | (No prf) = No $ prf . inside
       where inside : NULLABLE a = NULLABLE b -> a = b
-            inside refl = refl
+            inside Refl = Refl

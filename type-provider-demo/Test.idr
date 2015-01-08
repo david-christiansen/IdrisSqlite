@@ -1,10 +1,15 @@
 module Test
 
-import Provider
+import Effects
+import DB.SQLite.Effect
 
+import Provider
 import Database
 import Queries
 import ErrorHandlers
+import Schema
+import SQLiteTypes
+
 
 %language TypeProviders
 

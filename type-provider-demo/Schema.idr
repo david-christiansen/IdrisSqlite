@@ -19,23 +19,23 @@ getTy : Attribute -> SQLiteType
 getTy (_:::t) = t
 
 attrEta : (attr : Attribute) -> (getName attr ::: getTy attr) = attr
-attrEta (x ::: y) = refl
+attrEta (x ::: y) = Refl
 
 attrInj : (c ::: t = c' ::: t') -> (c=c', t=t')
-attrInj refl = (refl, refl)
+attrInj Refl = (Refl, Refl)
 
 -- the first case forces it to get stuck if the constants are not in canonical form
 foo : (x : String) -> (y : String) -> Dec (x = y)
-foo "" "" = Yes refl
+foo "" "" = Yes Refl
 foo x y with (decEq x y)
-  foo x y | Yes _ = Yes (really_believe_me (refl {x}))
+  foo x y | Yes _ = Yes (really_believe_me (Refl {x}))
   foo x y | No urgh = No urgh
 
 
 instance DecEq Attribute where
   decEq (x ::: y) (z ::: w) with (foo x z, decEq y w)
-    decEq (x ::: y) (x ::: y) | (Yes refl, Yes refl) = Yes refl
-    decEq (x ::: y) (x ::: w) | (Yes refl, No prf) = No $ prf . snd . attrInj
+    decEq (x ::: y) (x ::: y) | (Yes Refl, Yes Refl) = Yes Refl
+    decEq (x ::: y) (x ::: w) | (Yes Refl, No prf) = No $ prf . snd . attrInj
     decEq (x ::: y) (z ::: w) | (No prf, _) = No $ prf . fst . attrInj
 
 data Schema = Nil | (::) Attribute Schema
@@ -45,18 +45,18 @@ append : (s1, s2 : Schema) -> Schema
 append [] s2 = s2
 append (attr :: s) s2 = attr :: (append s s2)
 
-consNotEmpty : with Schema (Nil = a::s) -> _|_
-consNotEmpty refl impossible
+consNotEmpty : with Schema (Nil = a::s) -> Void
+consNotEmpty Refl impossible
 
 consInj : with Schema (a::s = a'::s') -> (a=a', s=s')
-consInj refl = (refl, refl)
+consInj Refl = (Refl, Refl)
 
 instance DecEq Schema where
-  decEq []          []            = Yes refl
+  decEq []          []            = Yes Refl
   decEq []          (attr :: s)   = No consNotEmpty
   decEq (attr :: s) []            = No $ consNotEmpty . sym
   decEq (attr :: s) (attr' :: s') with (decEq attr attr', decEq s s')
-    decEq (attr :: s) (attr :: s) | (Yes refl, Yes refl) = Yes refl
+    decEq (attr :: s) (attr :: s) | (Yes Refl, Yes Refl) = Yes Refl
     decEq (attr :: s) (attr' :: s') | (Yes a, No b) = No $ b . snd . consInj
     decEq (attr :: s) (attr' :: s') | (No a, _) = No $ a . fst . consInj
 
@@ -69,23 +69,23 @@ data HasCol : Schema -> Attribute -> Type where
   Here : HasCol (attr::s) attr
   There : HasCol s attr -> HasCol (attr'::s) attr
 
-HasColNotEmpty : HasCol [] a -> _|_
+HasColNotEmpty : HasCol [] a -> Void
 HasColNotEmpty Here impossible
 HasColNotEmpty (There _) impossible
 
 instance Uninhabited (HasCol [] a) where
   uninhabited x = HasColNotEmpty x
 
-decHasColLemma :  (HasCol s attr -> _|_) ->
-                  (attr' = attr -> _|_) ->
-                  HasCol (attr' :: s) attr -> _|_
-decHasColLemma h1 h2 Here = h2 refl
+decHasColLemma :  (HasCol s attr -> Void) ->
+                  (attr' = attr -> Void) ->
+                  HasCol (attr' :: s) attr -> Void
+decHasColLemma h1 h2 Here = h2 Refl
 decHasColLemma h1 h2 (There x) = h1 x
 
 decHasCol : (s : Schema) -> (attr : Attribute) -> Dec (HasCol s attr)
 decHasCol [] attr = No HasColNotEmpty
 decHasCol (attr' :: s) attr with (decEq attr' attr)
-  decHasCol (attr' :: s) attr' | (Yes p) = rewrite p in Yes Here
+  decHasCol (attr' :: s) attr' | (Yes Refl) = Yes Here
   decHasCol (attr' :: s) attr | (No f) with (decHasCol s attr)
     decHasCol (attr' :: s) attr | (No f) | (Yes x) = Yes (There x)
     decHasCol (attr' :: s) attr | (No f) | (No g) = No $ \h => decHasColLemma g f h
@@ -104,13 +104,13 @@ data SubSchema : Schema -> Schema -> Type where
          (alsoThere : HasCol large attr) ->
          SubSchema (attr :: small) large
 
-decSubSchema_lemma : ((SubSchema s s2) -> _|_) -> SubSchema (attr :: s) s2 -> _|_
+decSubSchema_lemma : ((SubSchema s s2) -> Void) -> SubSchema (attr :: s) s2 -> Void
 decSubSchema_lemma f (Head tailSub alsoThere) = f tailSub
 
-decSubSchema_lemma2 : ((HasCol s2 attr) -> _|_) -> (SubSchema (attr :: s) s2) -> _|_
+decSubSchema_lemma2 : ((HasCol s2 attr) -> Void) -> (SubSchema (attr :: s) s2) -> Void
 decSubSchema_lemma2 f (Head tailSub alsoThere) = f alsoThere
 
-emptySubSchema : SubSchema (attr::s1) [] -> _|_
+emptySubSchema : SubSchema (attr::s1) [] -> Void
 emptySubSchema (Head tailSub alsoThere) = absurd alsoThere
 
 decSubSchema : (s1, s2 : Schema) -> Dec (SubSchema s1 s2)
@@ -125,16 +125,16 @@ decSubSchema (attr :: s) s2 with (decSubSchema s s2)
 HasColNamed : Schema -> String -> Type
 HasColNamed s col = (t : SQLiteType ** HasCol s (col ::: t))
 
-decHasColNamed_lemma : ((HasColNamed s col) -> _|_) -> ((col' = col) -> _|_) ->
-                       (t ** HasCol ((col' ::: ty) :: s) (col ::: t)) -> _|_
-decHasColNamed_lemma notThere notHere (ty ** Here)         = notHere refl
+decHasColNamed_lemma : ((HasColNamed s col) -> Void) -> ((col' = col) -> Void) ->
+                       (t ** HasCol ((col' ::: ty) :: s) (col ::: t)) -> Void
+decHasColNamed_lemma notThere notHere (ty ** Here)         = notHere Refl
 decHasColNamed_lemma notThere notHere (ty ** (There more)) = notThere (ty ** more)
 
 
 decHasColNamed : (s : Schema) -> (col : String) -> Dec (HasColNamed s col)
 decHasColNamed [] col = No $ \h => HasColNotEmpty (getProof h)
 decHasColNamed ((col' ::: ty) :: s) col with (decEq col' col)
-  decHasColNamed ((col ::: ty) :: s)  col | (Yes refl) = Yes (ty ** Here)
+  decHasColNamed ((col ::: ty) :: s)  col | (Yes Refl) = Yes (ty ** Here)
   decHasColNamed ((col' ::: ty) :: s) col | (No f) with (decHasColNamed s col)
     decHasColNamed ((col' ::: ty) :: s) col | (No f) | (Yes x) =
       Yes (getWitness x ** There (getProof x))
@@ -146,7 +146,7 @@ colNames ((col ::: _) :: s) = col :: colNames s
 
 disjoint : (s1, s2 : Schema) -> Type
 disjoint [] s2 = ()
-disjoint ((col ::: _) :: s1) s2 = (HasColNamed s2 col -> _|_, disjoint s1 s2)
+disjoint ((col ::: _) :: s1) s2 = (HasColNamed s2 col -> Void, disjoint s1 s2)
 
 decDisjoint : (s1, s2 : Schema) -> Dec (disjoint s1 s2)
 decDisjoint [] s2 = Yes ()

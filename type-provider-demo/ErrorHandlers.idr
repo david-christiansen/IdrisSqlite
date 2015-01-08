@@ -1,6 +1,8 @@
 module ErrorHandlers
 
 import Queries
+import Schema
+import SQLiteTypes
 import Language.Reflection
 import Language.Reflection.Errors
 
