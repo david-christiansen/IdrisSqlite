@@ -54,7 +54,7 @@ printRes q = do res <- runInit [()] (query q)
                   Right table => putStrLn (showTable _ table)
 namespace Main
   main : IO ()
-  main = do printRes foos
+  main = do --printRes foos
             printRes people
             printRes transit
             putStrLn "ok"
@@ -66,5 +66,5 @@ namespace Main
 -- -}
 
 -- Local Variables:
--- idris-packages: ("lightyear" "sqlite" "neweffects")
+-- idris-packages: ("lightyear" "sqlite" "effects")
 -- End:

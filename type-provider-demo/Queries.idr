@@ -58,8 +58,7 @@ namespace Expr
 
   data Expr : Schema -> SQLiteType -> Type where
     Col : (c : String) -> {t : SQLiteType} ->
-          {default tactics {byReflection solveHasCol; solve;}
-           ok : HasCol s (c:::t)} ->-- {auto solveIt : decHasCol s (c:::t) = Yes ok} ->
+          {auto ok : HasCol s (c:::t)} ->
           Expr s t
     (==) : Expr s t -> Expr s t -> Expr s INTEGER
     (>) : Expr s INTEGER -> Expr s INTEGER -> Expr s INTEGER
@@ -69,21 +68,6 @@ namespace Expr
     Length : Expr s TEXT -> Expr s INTEGER
     Not : Expr s INTEGER -> Expr s INTEGER
     CstI : Integer -> Expr s INTEGER
-
-
-  eval : Expr s t -> Row s -> interpSql t
-  eval (Col c {ok=ht}) r1 = getCol ht r1
-  eval ((==) {t=t'} x y) r1 = let x' = eval{t=t'} x r1 in
-                              let y' = eval{t=t'} y r1 in
-                              if equalSql t' x' y' then 1 else 0
-  eval (x > y) r1 = if eval x r1 > eval y r1 then 1 else 0
-  eval (x < y) r1 = if eval x r1 < eval y r1 then 1 else 0
-  eval (x >= y) r1 = if eval x r1 >= eval y r1 then 1 else 0
-  eval (x <= y) r1 = if eval x r1 <= eval y r1 then 1 else 0
-  eval (Length x) r1 = cast {from=Nat} {to=Integer} (Strings.length $ eval x r1)
-  eval (Not x) r1 = if eval x r1 /= 0 then 0 else 1
-  eval (CstI i) _ = i
-
 
   compileOp : String -> String -> String -> String
   compileOp op x y = "(" ++ x ++ ") " ++ op ++ " (" ++ y ++ ")"
@@ -114,18 +98,13 @@ namespace Query
   -- The evaluator needs a 'function case' to know its a reflection function
   -- until we propagate that information! Without this, the _ case won't get
   -- matched.
-  reflectListPrf (x ++ y) = Refine "Here" `Seq` Solve
+  --reflectListPrf (x ++ y) = Refine "Here" `Seq` Solve
   reflectListPrf _ = Refine "Here" `Seq` Solve
 
   %reflection
   solveHasTable : Type -> Tactic
   solveHasTable (HasTable ts n s) = reflectListPrf ts `Seq` Solve
   solveHasTable (HasTable (x ++ y) n s) = Solve
-
-
-  tryHasTable : Nat -> List (TTName, TT) -> TT -> Tactic
-  tryHasTable Z ctxt goal = Refine "Here" `Seq` Solve
-  tryHasTable (S n) ctxt goal = Refine "There" `Seq` Solve
 
 
   data Tables : DB file -> Schema -> Type where
@@ -169,7 +148,7 @@ namespace Query
 
   data Query : DB f -> Schema -> Type where
     Select : {db : DB f} -> Tables db s -> Expr s INTEGER -> (s' : Schema) ->
-             {ok : SubSchema s' s} -> {default Refl solveIt : decSubSchema s' s = Yes ok} ->
+             {auto ok : SubSchema s' s} ->
              Query db s'
 
   syntax SELECT [schema] FROM [tables] WHERE [expr] = Select tables expr schema

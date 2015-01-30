@@ -34,6 +34,8 @@ getHasColErr _ = Nothing
 notFound : Err -> Maybe (List ErrorReportPart)
 notFound (CantUnify x tm tm' err xs y) = Nothing
 notFound (CantConvert tm tm' xs) = Nothing
+notFound (CantSolveGoal `(SubSchema ~s1 ~s2) ctxt) =
+  Just [TextPart "Bad query schema:", TermPart s1, SubReport [TextPart "Not a subschema of", TermPart s2]]
 notFound (CantSolveGoal (App (App (App (App equals _) _) l) _) xs) = Just (getSchemas l)
   where getSchemas (App (App _ a) b) = [TextPart "The schema"] ++ getAttrs a ++ [TextPart "\nisn't a subschema of"] ++ getAttrs b
         getSchemas _ = []
