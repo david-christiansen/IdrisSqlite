@@ -6,10 +6,13 @@ import DB.SQLite.Effect
 import Provider
 import Database
 import Queries
+import ErrorHandlers
 import Schema
 import SQLiteTypes
 
+
 %language TypeProviders
+%language ErrorReflection
 
 -- Use the SQLite dependencies in generated code
 %link C "sqlite3api.o"
@@ -19,28 +22,24 @@ import SQLiteTypes
 
 
 
-%provide (db : DB "test.sqlite")
-  with run (getSchemas "test.sqlite")
+%provide (db : DB "test.sqlite") with run (getSchemas "test.sqlite")
 
+--%error_handlers Col    ok hasColErr
+--%error_handlers Select ok notSubSchemaErr
 
-
-speakers : Query db ["name":::TEXT, "bio":::NULLABLE TEXT]
-speakers = SELECT ["name":::TEXT, "bio":::NULLABLE TEXT]
-           FROM "speaker"
-           WHERE 1
+speakers : Query db ["name":::TEXT, "bio":::TEXT]
+speakers = SELECT ["name":::TEXT, "bio":::TEXT] FROM "speaker" WHERE 1
 
 -- :x unsafePerformIO $ run $ query speakers
 
 talks : Query db ["title":::TEXT, "abstract":::TEXT]
-talks = SELECT ["title":::TEXT, "abstract":::TEXT]
-        FROM "talk"
-        WHERE 1
+talks = SELECT ["title":::TEXT, "abstract":::TEXT] FROM "talk" WHERE 1
 
 
 program : Query db ["name":::TEXT, "title":::TEXT, "abstract":::TEXT]
 program = SELECT ["name":::TEXT, "title":::TEXT, "abstract":::TEXT]
           FROM "speaker" * "talk"
-          WHERE Col "id" == Col "speaker"
+          WHERE Col "id" == Col "speaker_id"
 
 
 

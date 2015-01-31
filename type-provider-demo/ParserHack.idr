@@ -22,10 +22,10 @@ people = "CREATE TABLE \"people\" (\"id\" INTEGER PRIMARY KEY  AUTOINCREMENT  NO
 -- --            sequence_ [ is quote, many1 space, is '(']
 -- --            return (pack res)
 
-dropPrefix : (Eq a) => List a -> List a -> Maybe (List a)
-dropPrefix [] ys = Just ys
-dropPrefix (x::xs) [] = Nothing
-dropPrefix (x::xs) (y::ys) = if x == y then dropPrefix xs ys else Nothing
+dropPrefixBy : (a -> a -> Bool) -> List a -> List a -> Maybe (List a)
+dropPrefixBy p [] ys = Just ys
+dropPrefixBy p (x::xs) [] = Nothing
+dropPrefixBy p (x::xs) (y::ys) = if p x y then dropPrefixBy p xs ys else Nothing
 
 getWhile : (a -> Bool) -> List a -> (List a, List a)
 getWhile p [] = ([], [])
@@ -56,21 +56,21 @@ getType opts = List.find (isType . toUpper) (split (==' ') opts)
 
 
 colNameTypeNullable : String -> Maybe (String, String, Bool)
-colNameTypeNullable col = case dropPrefix [] (unpack (trim col)) of
+colNameTypeNullable col = case dropPrefixBy (==) [] (unpack (trim col)) of
                             Nothing   => Nothing
                             Just rest => let (name, rest') = (getWhile (/= ' ') rest)
-                                         in case dropPrefix [' '] rest' of
+                                         in case dropPrefixBy (==) [' '] rest' of
                                             Just rest'' => case getType (pack rest'') of
                                                              Just tp => Just (pack name, tp, isNullable (toUpper (pack rest'')))
                                                              Nothing => Nothing
                                             Nothing     => Nothing
 
 nameCols : String -> Maybe (String, List String)
-nameCols schema = case dropPrefix (unpack "create table ") (unpack schema) of
+nameCols schema = case dropPrefixBy (\x,y => toLower x == toLower y) (unpack "create table ") (unpack schema) of
                     Nothing => Nothing
                     Just rest => let (name, rest') = (getWhile (/= ' ') rest)
-                                 in case dropPrefix [' ', '('] rest' of
-                                      Just rest'' => case dropPrefix [')'] (reverse rest'') of
+                                 in case dropPrefixBy (==) [' ', '('] rest' of
+                                      Just rest'' => case dropPrefixBy (==) [')'] (reverse rest'') of
                                                        Just rest''' =>
                                                          Just (pack name, split (==',') (pack (reverse rest''')))
                                                        Nothing => Nothing
@@ -78,11 +78,12 @@ nameCols schema = case dropPrefix (unpack "create table ") (unpack schema) of
 
 parse : String -> Maybe (String, List (String, String, Bool))
 parse schema = case nameCols schema of
-                 Just (n, cols) => case sequence {f=Maybe} (map colNameTypeNullable cols) of
+                 Just (n, cols) => case sequence {f=Maybe} (map colNameTypeNullable (filter isColumn cols)) of
                                      Just cols' => Just (n, cols')
                                      Nothing => Nothing
                  Nothing => Nothing
-
+  where isColumn : String -> Bool
+        isColumn col = not $ isPrefixOf "foreign" (toLower (trim col))
 toSchema : List (String, String, Bool) -> Maybe Schema
 toSchema [] = Just []
 toSchema ((colName, colT, nullable)::cols) = do tp <- getType (toUpper colT) nullable

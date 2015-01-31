@@ -50,21 +50,21 @@ nullableNotReal Refl impossible
 
 
 instance DecEq SQLiteType where
-  decEq TEXT TEXT = Yes Refl
-  decEq INTEGER TEXT = No integerNotText
-  decEq REAL TEXT = No realNotText
-  decEq (NULLABLE x) TEXT = No nullableNotText
-  decEq TEXT INTEGER = No $ integerNotText . sym
-  decEq INTEGER INTEGER = Yes Refl
-  decEq REAL INTEGER = No realNotInteger
+  decEq TEXT TEXT            = Yes Refl
+  decEq INTEGER TEXT         = No integerNotText
+  decEq REAL TEXT            = No realNotText
+  decEq (NULLABLE x) TEXT    = No nullableNotText
+  decEq TEXT INTEGER         = No $ integerNotText . sym
+  decEq INTEGER INTEGER      = Yes Refl
+  decEq REAL INTEGER         = No realNotInteger
   decEq (NULLABLE x) INTEGER = No nullableNotInteger
-  decEq TEXT REAL = No $ realNotText . sym
-  decEq INTEGER REAL = No $ realNotInteger . sym
-  decEq REAL REAL = Yes Refl
-  decEq (NULLABLE x) REAL = No nullableNotReal
-  decEq TEXT (NULLABLE x) = No $ nullableNotText . sym
+  decEq TEXT REAL            = No $ realNotText . sym
+  decEq INTEGER REAL         = No $ realNotInteger . sym
+  decEq REAL REAL            = Yes Refl
+  decEq (NULLABLE x) REAL    = No nullableNotReal
+  decEq TEXT (NULLABLE x)    = No $ nullableNotText . sym
   decEq INTEGER (NULLABLE x) = No $ nullableNotInteger . sym
-  decEq REAL (NULLABLE x) = No $ nullableNotReal . sym
+  decEq REAL (NULLABLE x)    = No $ nullableNotReal . sym
   decEq (NULLABLE y) (NULLABLE x) with (decEq y x)
     decEq (NULLABLE x) (NULLABLE x) | (Yes Refl) = Yes Refl
     decEq (NULLABLE y) (NULLABLE x) | (No prf) = No $ prf . inside

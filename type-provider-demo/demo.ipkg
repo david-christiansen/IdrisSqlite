@@ -1,0 +1,4 @@
+package demo
+
+opts = "-p effects -p sqlite -p lightyear"
+

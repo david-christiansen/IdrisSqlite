@@ -26,7 +26,9 @@ mkDB _ = Left "Couldn't understand SQLite output - wrong type"
 
 getSchemas : (filename : String) -> { [SQLITE ()] } Eff (Provider (DB filename))
 getSchemas file =
-  do resSet <- executeSelect file "SELECT `sql` FROM `sqlite_master`;" [] $
+  do let ddlQuery = "SELECT `sql` FROM `sqlite_master` " ++
+                    "WHERE NOT (sqlite_master.name LIKE \"sqlite%\");"
+     resSet <- executeSelect file ddlQuery [] $
                do sql <- getColumnText 0
                   pure [DBText sql]
      case resSet of
