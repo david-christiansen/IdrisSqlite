@@ -24,8 +24,8 @@ import SQLiteTypes
 
 %provide (db : DB "test.sqlite") with run (getSchemas "test.sqlite")
 
---%error_handlers Col    ok hasColErr
---%error_handlers Select ok notSubSchemaErr
+%error_handlers Col    ok hasColErr
+%error_handlers Select ok notSubSchemaErr
 
 speakers : Query db ["name":::TEXT, "bio":::TEXT]
 speakers = SELECT ["name":::TEXT, "bio":::TEXT] FROM "speaker" WHERE 1

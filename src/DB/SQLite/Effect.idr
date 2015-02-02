@@ -146,45 +146,45 @@ data Sqlite : Effect where
 
 private
 foreignGetError : ConnectionPtr -> IO Int
-foreignGetError (ConnPtr ptr) = mkForeign (FFun "idr_errcode" [FPtr] FInt) ptr
+foreignGetError (ConnPtr ptr) = foreign FFI_C "idr_errcode" (Ptr -> IO Int) ptr
 
 private
 foreignNextRow : ConnectionPtr -> IO StepResult
 foreignNextRow (ConnPtr ptr) =
-  map stepResult (mkForeign (FFun "sqlite3_step_idr" [FPtr] FInt) ptr)
+  map stepResult (foreign FFI_C "sqlite3_step_idr" (Ptr -> IO Int) ptr)
 
 private
 foreignFinalise : ConnectionPtr -> IO ()
-foreignFinalise (ConnPtr c) = do mkForeign (FFun "sqlite3_finalize_idr" [FPtr] FInt) c
+foreignFinalise (ConnPtr c) = do foreign FFI_C "sqlite3_finalize_idr" (Ptr -> IO Int) c
                                  return ()
 
 private
 foreignClose : ConnectionPtr -> IO ()
-foreignClose (ConnPtr c) = do mkForeign (FFun "sqlite3_close_idr" [FPtr] FInt) c
+foreignClose (ConnPtr c) = do foreign FFI_C "sqlite3_close_idr" (Ptr -> IO Int) c
                               return ()
 
 -- That's the painful bit done, since exception branching will allow us to not have to do
 -- the ugliness of pass-through handlers
 instance Handler Sqlite IO where
   handle () (OpenDB file) k = do
-    ff <- mkForeign (FFun "sqlite3_open_idr" [FString] FPtr) file
+    ff <- foreign FFI_C "sqlite3_open_idr" (String -> IO Ptr) file
     is_null <- nullPtr ff
     if (not is_null) then k (Right ()) (SQLConnection (ConnPtr ff))
                      else k (Left (ConnectionError sqlite_ERROR)) ()
 
   handle (SQLConnection (ConnPtr conn)) CloseDB k = do
-    mkForeign (FFun "sqlite3_close_idr" [FPtr] FInt) conn
+    foreign FFI_C "sqlite3_close_idr" (Ptr -> IO Int) conn
     k () ()
 
   handle (SQLConnection (ConnPtr conn)) (PrepareStatement str) k = do
-    res <- mkForeign (FFun "sqlite3_prepare_idr" [FPtr, FString] FPtr) conn str
+    res <- foreign FFI_C "sqlite3_prepare_idr" (Ptr -> String -> IO Ptr) conn str
     is_null <- nullPtr res
     if (not is_null) then k (Right ()) (SQLitePS (ConnPtr conn) (PSPtr res))
                      else do err <- foreignGetError (ConnPtr conn)
                              k (Left (StatementError err)) (PSFail (ConnPtr conn))
 
   handle (SQLitePS (ConnPtr conn) (PSPtr res)) (BindInt pos i) k = do
-    res <- mkForeign (FFun "sqlite3_bind_int_idr" [FPtr, FInt, FInt] FPtr) conn pos i
+    res <- foreign FFI_C "sqlite3_bind_int_idr" (Ptr -> Int -> Int -> IO Ptr) conn pos i
     is_null <- nullPtr res
     if (not is_null) then k () (SQLitePS (ConnPtr conn) (PSPtr res))
                      else do err <- foreignGetError (ConnPtr conn)
@@ -192,14 +192,16 @@ instance Handler Sqlite IO where
                              k () (SQLiteBindFail (ConnPtr conn) (PSPtr res) (BE pos err))
 
   handle (SQLitePS (ConnPtr conn) (PSPtr res)) (BindFloat pos f) k = do
-    res <- mkForeign (FFun "sqlite3_bind_double_idr" [FPtr, FInt, FFloat] FPtr) conn pos f
+    res <- foreign FFI_C "sqlite3_bind_double_idr" (Ptr -> Int -> Float -> IO Ptr) conn pos f
     is_null <- nullPtr res
     if (not is_null) then k () (SQLitePS (ConnPtr conn) (PSPtr res))
                      else do err <- foreignGetError (ConnPtr conn)
                              k () (SQLiteBindFail (ConnPtr conn) (PSPtr res) (BE pos err))
 
   handle (SQLitePS (ConnPtr conn) (PSPtr res)) (BindText pos str str_len) k = do
-    res <- mkForeign (FFun "sqlite3_bind_text_idr" [FPtr, FString, FInt, FInt] FPtr) conn str pos str_len
+    res <- foreign FFI_C "sqlite3_bind_text_idr"
+                   (Ptr -> String -> Int -> Int -> IO Ptr)
+                   conn str pos str_len
     is_null <- nullPtr res
     if (not is_null) then k () (SQLitePS (ConnPtr conn) (PSPtr res))
                      else do err <- foreignGetError (ConnPtr conn)
@@ -207,7 +209,7 @@ instance Handler Sqlite IO where
                              k () (SQLiteBindFail (ConnPtr conn) (PSPtr res) (BE pos err))
 
   handle (SQLitePS (ConnPtr conn) (PSPtr res)) (BindNull pos) k = do
-    res <- mkForeign (FFun "sqlite3_bind_null_idr" [FPtr, FInt] FPtr) conn pos
+    res <- foreign FFI_C "sqlite3_bind_null_idr" (Ptr -> Int -> IO Ptr) conn pos
     is_null <- nullPtr res
     if (not is_null) then k () (SQLitePS (ConnPtr conn) (PSPtr res))
                      else do err <- foreignGetError (ConnPtr conn)
@@ -245,32 +247,32 @@ instance Handler Sqlite IO where
 
   -- Getting values from the current row
   handle (SQLiteE (ConnPtr c) (PSPtr p)) (GetColumnName i) k = do
-    res <- mkForeign (FFun "sqlite3_column_name_idr" [FPtr, FInt] FString) c i
+    res <- foreign FFI_C "sqlite3_column_name_idr" (Ptr -> Int -> IO String) c i
     k res (SQLiteE (ConnPtr c) (PSPtr p))
 
   handle (SQLiteE (ConnPtr c) (PSPtr p)) (GetColumnDataSize i) k = do
-    res <- mkForeign (FFun "sqlite3_column_bytes_idr" [FPtr, FInt] FInt) c i
+    res <- foreign FFI_C "sqlite3_column_bytes_idr" (Ptr -> Int -> IO Int) c i
     k res (SQLiteE (ConnPtr c) (PSPtr p))
 
   handle (SQLiteE (ConnPtr c) (PSPtr p)) (GetColumnInt i) k = do
-    res <- mkForeign (FFun "sqlite3_column_int_idr" [FPtr, FInt] FInt) c i
+    res <- foreign FFI_C "sqlite3_column_int_idr" (Ptr -> Int -> IO Int) c i
     k res (SQLiteE (ConnPtr c) (PSPtr p))
 
   handle (SQLiteE (ConnPtr c) (PSPtr p)) (GetColumnFloat i) k = do
-    res <- mkForeign (FFun "sqlite3_column_double_idr" [FPtr, FInt] FFloat) c i
+    res <- foreign FFI_C "sqlite3_column_double_idr" (Ptr -> Int -> IO Float) c i
     k res (SQLiteE (ConnPtr c) (PSPtr p))
 
   handle (SQLiteE (ConnPtr c) (PSPtr p)) (GetColumnText i) k = do
-    res <- mkForeign (FFun "sqlite3_column_text_idr" [FPtr, FInt] FString) c i
+    res <- foreign FFI_C "sqlite3_column_text_idr" (Ptr -> Int -> IO String) c i
     k res (SQLiteE (ConnPtr c) (PSPtr p))
 
   handle (SQLiteE (ConnPtr c) (PSPtr p)) (IsColumnNull i) k = do
-    res <- mkForeign (FFun "sqlite3_column_null_idr" [FPtr, FInt] FInt) c i
+    res <- foreign FFI_C "sqlite3_column_null_idr" (Ptr -> Int -> IO Int) c i
     k (res /= 0) (SQLiteE (ConnPtr c) (PSPtr p))
 
   -- Resetting our position
   handle (SQLiteE (ConnPtr c) (PSPtr p)) (Reset) k = do
-    mkForeign (FFun "sqlite3_reset_idr" [FPtr] FInt) c
+    foreign FFI_C "sqlite3_reset_idr" (Ptr -> IO Int) c
     step <- foreignNextRow (ConnPtr c)
     case step of
       Unstarted    => k Unstarted    (SQLiteE (ConnPtr c) (PSPtr p))
@@ -279,7 +281,7 @@ instance Handler Sqlite IO where
       NoMoreRows   => k NoMoreRows   (SQLiteE (ConnPtr c) (PSPtr p))
 
 {-  handle (SQLiteE (ConnPtr c) (PSPtr p)) (ResetFromEnd) k = do
-    mkForeign (FFun "sqlite3_reset_idr" [FPtr] FInt) c
+    foreign FFI_C (FFun "sqlite3_reset_idr" [FPtr] FInt) c
     step <- foreignNextRow (ConnPtr c)
     case step of
       StepComplete => k StepComplete (SQLiteE (ConnPtr c) (PSPtr p))
