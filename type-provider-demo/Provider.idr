@@ -21,7 +21,7 @@ mkDB ([DBText v]::rest) =
     Nothing => Left ( "Couldn't parse schema '" ++ v ++ "'\n")
     Just (t, tbl) =>
       with Applicative
-        Right List.(::) <$> Right (t, tbl) <$> mkDB rest
+        Right List.(::) <*> Right (t, tbl) <*> mkDB rest
 mkDB _ = Left "Couldn't understand SQLite output - wrong type"
 
 getSchemas : (filename : String) -> { [SQLITE ()] } Eff (Provider (DB filename))
