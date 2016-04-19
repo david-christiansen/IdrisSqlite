@@ -12,7 +12,7 @@ import Language.Reflection.Utils
 %default total
 %language ErrorReflection
 
-namespace Row
+namespace Row0
   data Row : Schema -> Type where
     Nil : Row []
     (::) : (x : interpSql t) -> (xs : Row s) -> Row ((c:::t) :: s)
@@ -90,16 +90,16 @@ namespace Expr
 namespace Query
   %reflection
   reflectListPrf : List a -> Tactic
-  reflectListPrf [] = Refine "Here" `Seq` Solve
+  reflectListPrf [] = Refine (UN "Here") `Seq` Solve
   reflectListPrf (x :: xs)
-       = Try (Refine "Here" `Seq` Solve)
-             (Refine "There" `Seq` (Solve `Seq` reflectListPrf xs))
+       = Try (Refine (UN "Here") `Seq` Solve)
+             (Refine (UN "There") `Seq` (Solve `Seq` reflectListPrf xs))
   -- TMP HACK! FIXME!
   -- The evaluator needs a 'function case' to know its a reflection function
   -- until we propagate that information! Without this, the _ case won't get
   -- matched.
   --reflectListPrf (x ++ y) = Refine "Here" `Seq` Solve
-  reflectListPrf _ = Refine "Here" `Seq` Solve
+  reflectListPrf _ = Refine (UN "Here") `Seq` Solve
 
   %reflection
   solveHasTable : Type -> Tactic
@@ -174,7 +174,7 @@ namespace Query
 -- -}
 
 ---------- Proofs ----------
-
+Queries.Row.projectRow_lemma : Row s
 Queries.Row.projectRow_lemma = proof
   intros
   rewrite (attrEta attr)

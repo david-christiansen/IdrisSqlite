@@ -5,13 +5,13 @@ import Decidable.Equality
 %default total
 
 
-data SQLiteType = TEXT | INTEGER | REAL
+public export data SQLiteType = TEXT | INTEGER | REAL
                 | NULLABLE SQLiteType
 
-interpSql : SQLiteType -> Type
+export interpSql : SQLiteType -> Type
 interpSql TEXT = String
 interpSql INTEGER = Integer
-interpSql REAL = Float
+interpSql REAL = Double
 interpSql (NULLABLE x) = Maybe (interpSql x)
 
 equalSql : (t : SQLiteType) -> (x, y : interpSql t) -> Bool
@@ -22,7 +22,7 @@ equalSql (NULLABLE ty) (Just x) (Just y) = equalSql ty x y
 equalSql (NULLABLE ty) Nothing Nothing = True
 equalSql (NULLABLE ty) _ _ = False
 
-showSql : (t : SQLiteType) -> (x : interpSql t) -> String
+export showSql : (t : SQLiteType) -> (x : interpSql t) -> String
 showSql TEXT x = show x
 showSql INTEGER x = show x
 showSql REAL x = show x
@@ -48,8 +48,7 @@ nullableNotInteger Refl impossible
 nullableNotReal : NULLABLE t = REAL -> Void
 nullableNotReal Refl impossible
 
-
-instance DecEq SQLiteType where
+export implementation DecEq SQLiteType where
   decEq TEXT TEXT            = Yes Refl
   decEq INTEGER TEXT         = No integerNotText
   decEq REAL TEXT            = No realNotText

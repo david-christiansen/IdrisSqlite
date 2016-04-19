@@ -1,7 +1,5 @@
 module Provider
 
-import public Providers
-
 import DB.SQLite.Effect
 import DB.SQLite.SQLiteCodes
 import Effects

@@ -5,7 +5,7 @@ import DB.SQLite.Effect
 import DB.SQLite.SQLiteCodes
 
 
-testInsert : String -> Int -> { [SQLITE ()] } Eff IO (Either QueryError ())
+testInsert : String -> Int -> Eff (Either QueryError ()) [SQLITE ()]
 testInsert name age =
   do open_db <- openDB "test.db"
      case open_db of
@@ -39,7 +39,7 @@ testInsert name age =
 
 
 
-testSelect : { [SQLITE ()] } Eff IO (Either QueryError ResultSet)
+testSelect : Eff (Either QueryError ResultSet) [SQLITE ()]
 testSelect =
   executeSelect "test.db" "SELECT `name`, `sql` FROM `sqlite_master`;" [] $
   do name <- getColumnText 0

@@ -1,3 +1,6 @@
 *~
 *.ibc
 *.o
+sqlite_test
+src/sqlite3api.so
+src/sqlite3api.o
