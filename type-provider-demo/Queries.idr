@@ -9,6 +9,7 @@ import Language.Reflection
 import Language.Reflection.Errors
 import Language.Reflection.Utils
 
+%access public export
 %default total
 %language ErrorReflection
 
@@ -106,7 +107,6 @@ namespace Query
   solveHasTable (HasTable ts n s) = reflectListPrf ts `Seq` Solve
   solveHasTable (HasTable (x ++ y) n s) = Solve
 
-
   data Tables : DB file -> Schema -> Type where
     T : (name : String) ->
         {default tactics { byReflection solveHasTable;}
@@ -164,18 +164,9 @@ namespace Query
     where cols : String
           cols = Foldable.concat . List.intersperse ", " . colNames $ proj
 
-
-
-
-
-
--- -}
--- -}
--- -}
-
 ---------- Proofs ----------
-Queries.Row.projectRow_lemma : Row s
-Queries.Row.projectRow_lemma = proof
+
+Queries.Row0.projectRow_lemma = proof
   intros
   rewrite (attrEta attr)
   exact value

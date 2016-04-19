@@ -28,7 +28,7 @@ speakers : Query db ["name":::TEXT, "bio":::NULLABLE TEXT]
 speakers = SELECT ["name":::TEXT, "bio":::NULLABLE TEXT]
            FROM "speaker"
            WHERE 1
-
+           
 -- :x unsafePerformIO $ run $ query speakers
 
 talks : Query db ["title":::TEXT, "abstract":::TEXT]
@@ -36,13 +36,10 @@ talks = SELECT ["title":::TEXT, "abstract":::TEXT]
         FROM "talk"
         WHERE 1
 
-
 program : Query db ["name":::TEXT, "title":::TEXT, "abstract":::TEXT]
 program = SELECT ["name":::TEXT, "title":::TEXT, "abstract":::TEXT]
           FROM "speaker" * "talk"
           WHERE Col "id" == Col "speaker"
-
-
 
 printRes : Query db s -> IO ()
 printRes q = do res <- runInit [()] (query q)

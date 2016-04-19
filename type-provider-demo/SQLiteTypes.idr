@@ -8,7 +8,7 @@ import Decidable.Equality
 public export data SQLiteType = TEXT | INTEGER | REAL
                 | NULLABLE SQLiteType
 
-export interpSql : SQLiteType -> Type
+public export interpSql : SQLiteType -> Type
 interpSql TEXT = String
 interpSql INTEGER = Integer
 interpSql REAL = Double

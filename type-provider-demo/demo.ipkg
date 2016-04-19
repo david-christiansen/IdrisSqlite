@@ -1,6 +1,6 @@
 package demo
 
-modules = Test, ErrorHandlers, parser, Schema, Database, ErrorTest, Provider, SQLiteTypes, ParserHack, Queries
+modules = Test, ErrorHandlers, Parser, Schema, Database, ErrorTest, Provider, SQLiteTypes, ParserHack, Queries
 
 executable = test
 
