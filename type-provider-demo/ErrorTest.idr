@@ -57,13 +57,3 @@ namespace Main
             putStrLn "Conference program"
             printRes program
             putStrLn "ok"
-
-
--- -}
--- -}
--- -}
--- -}
-
--- Local Variables:
--- idris-packages: ("lightyear" "sqlite" "effects")
--- End:

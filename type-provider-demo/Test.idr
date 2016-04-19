@@ -60,11 +60,3 @@ namespace Main
             putStrLn "ok"
 
 
--- -}
--- -}
--- -}
--- -}
-
--- Local Variables:
--- idris-packages: ("lightyear" "sqlite" "effects")
--- End:

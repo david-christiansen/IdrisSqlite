@@ -56,7 +56,3 @@ table = do token "create"
            token ")"
            pure (n,cs)
 
-
--- Local Variables:
--- idris-packages: ("lightyear")
--- End:
