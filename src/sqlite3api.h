@@ -53,6 +53,8 @@ int sqlite3_exec_idr(void*, const char *sql);
 
 char* sqlite3_get_error(void* db);
 
+int idr_errcode(void* db);
+
 const unsigned char* sqlite3_get_val_text(void* p,int nCol);
 
 void* sqlite3_get_table_idr(void* db, const char *sql);
