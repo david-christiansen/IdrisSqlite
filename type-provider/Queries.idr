@@ -109,11 +109,11 @@ namespace Query
 
   data Tables : DB file -> Schema -> Type where
     T : (name : String) ->
-        {default tactics { byReflection solveHasTable;}
+        {default tactics { byReflection solveHasTable; }
          ok : HasTable db name s} ->
         Tables (MkDB file db) s
     (*) : (t1 : String) ->
-          {default tactics { byReflection solveHasTable; }
+          {auto
            ok : HasTable db t1 s1} ->
           Tables (MkDB file db) s2 ->
           {auto disj : isDisjoint s1 s2 = Disjoint} ->
@@ -121,7 +121,7 @@ namespace Query
 
   implicit
   toTables : (tbl : String) ->
-             {default tactics { byReflection solveHasTable; }
+             {auto
               ok : HasTable db tbl s} ->
              Tables (MkDB name db) s
   toTables tbl {ok = ok} = T tbl {ok = ok}
@@ -137,7 +137,7 @@ namespace Query
              (values : Table s) ->
              Cmd (MkDB f db)
     Delete : (from : String) -> (s : Schema) ->
-             {default tactics { byReflection solveHasTable;}
+             {default tactics { byReflection solveHasTable; }
               ok : HasTable db from s} ->
              (when : Expr s INTEGER) ->
              Cmd (MkDB f db)

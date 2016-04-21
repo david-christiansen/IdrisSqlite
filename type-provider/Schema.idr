@@ -5,20 +5,22 @@ import SQLiteTypes
 import Decidable.Equality
 import Language.Reflection
 
+%access public export
 %default total
 
+%auto_implicits on
 
 infix 5 :::
-public export data Attribute = (:::) String SQLiteType
+data Attribute = (:::) String SQLiteType
 %name Attribute attr,attr'
 
-export getName : Attribute -> String
+getName : Attribute -> String
 getName (c:::_) = c
 
-public export getTy : Attribute -> SQLiteType
+getTy : Attribute -> SQLiteType
 getTy (_:::t) = t
 
-public export attrEta : (attr : Attribute) -> (getName attr ::: getTy attr) = attr
+attrEta : (attr : Attribute) -> (getName attr ::: getTy attr) = attr
 attrEta (x ::: y) = Refl
 
 attrInj : (c ::: t = c' ::: t') -> (c=c', t=t')
@@ -38,10 +40,10 @@ implementation DecEq Attribute where
     decEq (x ::: y) (x ::: w) | (Yes Refl, No prf) = No $ prf . snd . attrInj
     decEq (x ::: y) (z ::: w) | (No prf, _) = No $ prf . fst . attrInj
 
-public export data Schema = Nil | (::) Attribute Schema
+data Schema = Nil | (::) Attribute Schema
 %name Schema s,s'
 
-export append : (s1, s2 : Schema) -> Schema
+append : (s1, s2 : Schema) -> Schema
 append [] s2 = s2
 append (attr :: s) s2 = attr :: (append s s2)
 
@@ -50,7 +52,7 @@ names [] = []
 names ((n ::: _) :: s) = n :: names s
 
 
-public export data HasCol : Schema -> Attribute -> Type where
+data HasCol : Schema -> Attribute -> Type where
   Here : HasCol (attr::s) attr
   There : HasCol s attr -> HasCol (attr'::s) attr
 
@@ -76,7 +78,7 @@ decHasCol (attr' :: s) attr with (decEq attr' attr)
     decHasCol (attr' :: s) attr | (No f) | (No g) = No $ \h => decHasColLemma g f h
 
 
-public export data SubSchema : Schema -> Schema -> Type where
+data SubSchema : Schema -> Schema -> Type where
   Empty : SubSchema [] s
   Head : (tailSub : SubSchema small large) ->
          (alsoThere : HasCol large attr) ->
@@ -100,15 +102,15 @@ decHasColNamed ((col' ::: ty) :: s) col with (decEq col' col)
       Yes (fst x ** There (snd x))
     decHasColNamed ((col' ::: ty) :: s) col | (No f) | (No g) = No (decHasColNamed_lemma g f)
 
-export colNames : Schema -> List String
+colNames : Schema -> List String
 colNames [] = []
 colNames ((col ::: _) :: s) = col :: colNames s
 
-public export data Disjointness : Type where
+data Disjointness : Type where
   Disjoint : Disjointness
   Overlap : (attr : Attribute) -> Disjointness
 
-export isDisjoint : (s1, s2 : Schema) -> Disjointness
+isDisjoint : (s1, s2 : Schema) -> Disjointness
 isDisjoint [] s2 = Disjoint
 isDisjoint (attr :: s) s2 with (decHasColNamed s2 (getName attr))
   isDisjoint (attr :: s) s2 | (Yes x) = Overlap attr

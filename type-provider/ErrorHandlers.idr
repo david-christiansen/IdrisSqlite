@@ -8,6 +8,8 @@ import Language.Reflection.Errors
 
 %language ErrorReflection
 
+%access public export
+
 ||| Convert a reflected schema to a nice formatted error view
 getAttrs : TT -> List ErrorReportPart
 getAttrs `(~a ::: ~b) = [SubReport
