@@ -1,6 +1,6 @@
 package sqlite
 
-opts = "-p effects"
+pkgs = effects
 sourcedir = src
 modules = DB.SQLite.Effect, DB.SQLite.SQLiteCodes
 

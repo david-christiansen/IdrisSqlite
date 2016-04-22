@@ -1,7 +1,5 @@
 module Provider
 
-import public Providers
-
 import DB.SQLite.Effect
 import DB.SQLite.SQLiteCodes
 import Effects
@@ -11,6 +9,8 @@ import ParserHack
 import Queries
 import Schema
 import SQLiteTypes
+
+%access export
 
 %language TypeProviders
 
@@ -24,7 +24,7 @@ mkDB ([DBText v]::rest) =
         Right List.(::) <*> Right (t, tbl) <*> mkDB rest
 mkDB _ = Left "Couldn't understand SQLite output - wrong type"
 
-getSchemas : (filename : String) -> { [SQLITE ()] } Eff (Provider (DB filename))
+getSchemas : (filename : String) -> Eff (Provider (DB filename)) [SQLITE ()] 
 getSchemas file =
   do let ddlQuery = "SELECT `sql` FROM `sqlite_master` " ++
                     "WHERE NOT (sqlite_master.name LIKE \"sqlite%\");"
@@ -37,24 +37,23 @@ getSchemas file =
                       Left err => pure (Error err)
                       Right db => pure (Provide (MkDB file db))
 
-getRow : (s : Schema) -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff (Row s)
+getRow : (s : Schema) -> SimpleEff.Eff (Row s) [SQLITE (SQLiteExecuting ValidRow)]
 getRow s = go 0 s
-  where go : Int -> (s : Schema) -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff (Row s)
+  where go : Int -> (s : Schema) -> Eff (Row s) [SQLITE (SQLiteExecuting ValidRow)]
         go i []          = pure []
         go i ((_ ::: ty) :: s) = [| getCol ty :: go (i+1) s |]
-          where getCol : (t : SQLiteType) -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff (interpSql t)
+          where getCol : (t : SQLiteType) -> Eff (interpSql t) [SQLITE (SQLiteExecuting ValidRow)]
                 getCol TEXT = getColumnText i
                 getCol INTEGER = do int <- getColumnInt i
                                     pure (cast int)
                 getCol REAL = getColumnFloat i
                 getCol (NULLABLE x) = do nullp <- isColumnNull i
-                                         if nullp
-                                           then pure Nothing
-                                           else do val <- getCol x
-                                                   pure (Just val)
+                                         case nullp of
+                                           True => pure Nothing
+                                           False => do val <- getCol x
+                                                       pure (Just val)
 
-collectRows : (s : Schema) -> { [SQLITE (SQLiteExecuting ValidRow)] ==>
-                                [SQLITE (SQLiteExecuting InvalidRow)] } Eff (Table s)
+collectRows : (s : Schema) -> Eff (Table s) [SQLITE (SQLiteExecuting ValidRow)] [SQLITE (SQLiteExecuting InvalidRow)]
 collectRows s = do row <- getRow s
                    case !nextRow of
                      Unstarted => pure $ row :: !(collectRows s)
@@ -62,8 +61,7 @@ collectRows s = do row <- getRow s
                      StepComplete => pure $ row :: !(collectRows s)
                      NoMoreRows => pure [row]
 
-query : {file : String} -> {db : DB file} -> Query db s ->
-        { [SQLITE ()] } Eff (Either QueryError (Table s))
+query : {file : String} -> {db : DB file} -> Query db s -> Eff (Either QueryError (Table s)) [SQLITE ()]
 query {file=fn} q =
   case !(openDB fn) of
     Left err => pure $ Left err

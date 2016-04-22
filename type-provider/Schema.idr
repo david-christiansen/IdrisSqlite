@@ -5,8 +5,10 @@ import SQLiteTypes
 import Decidable.Equality
 import Language.Reflection
 
+%access public export
 %default total
 
+%auto_implicits on
 
 infix 5 :::
 data Attribute = (:::) String SQLiteType
@@ -32,7 +34,7 @@ foo x y with (decEq x y)
   foo x y | No urgh = No urgh
 
 
-instance DecEq Attribute where
+implementation DecEq Attribute where
   decEq (x ::: y) (z ::: w) with (foo x z, decEq y w)
     decEq (x ::: y) (x ::: y) | (Yes Refl, Yes Refl) = Yes Refl
     decEq (x ::: y) (x ::: w) | (Yes Refl, No prf) = No $ prf . snd . attrInj
@@ -58,7 +60,7 @@ HasColNotEmpty : HasCol [] a -> Void
 HasColNotEmpty Here impossible
 HasColNotEmpty (There _) impossible
 
-instance Uninhabited (HasCol [] a) where
+implementation Uninhabited (HasCol [] a) where
   uninhabited x = HasColNotEmpty x
 
 decHasColLemma :  (HasCol s attr -> Void) ->
@@ -92,12 +94,12 @@ decHasColNamed_lemma notThere notHere (ty ** (There more)) = notThere (ty ** mor
 
 
 decHasColNamed : (s : Schema) -> (col : String) -> Dec (HasColNamed s col)
-decHasColNamed [] col = No $ \h => HasColNotEmpty (getProof h)
+decHasColNamed [] col = No $ \h => HasColNotEmpty (snd h)
 decHasColNamed ((col' ::: ty) :: s) col with (decEq col' col)
   decHasColNamed ((col ::: ty) :: s)  col | (Yes Refl) = Yes (ty ** Here)
   decHasColNamed ((col' ::: ty) :: s) col | (No f) with (decHasColNamed s col)
     decHasColNamed ((col' ::: ty) :: s) col | (No f) | (Yes x) =
-      Yes (getWitness x ** There (getProof x))
+      Yes (fst x ** There (snd x))
     decHasColNamed ((col' ::: ty) :: s) col | (No f) | (No g) = No (decHasColNamed_lemma g f)
 
 colNames : Schema -> List String

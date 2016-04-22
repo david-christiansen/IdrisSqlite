@@ -1,0 +1,9 @@
+package sqlite_test
+
+pkgs = effects, sqlite
+sourcedir = src
+modules = DB.SQLite.SQLiteTest
+
+executable = sqlite_test
+
+main = DB.SQLite.SQLiteTest

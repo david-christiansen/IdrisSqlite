@@ -19,18 +19,15 @@ import SQLiteTypes
 %include C "sqlite3api.h"
 %lib C "sqlite3"
 
+%auto_implicits off
 
-
-
-%provide (db : DB "test.sqlite") with run (getSchemas "test.sqlite")
+%provide (db : DB "test.sqlite") with run {m=IO} (getSchemas "test.sqlite")
 
 %error_handlers Col    ok hasColErr
 %error_handlers Select ok notSubSchemaErr
 
 speakers : Query db ["name":::TEXT, "bio":::TEXT]
 speakers = SELECT ["name":::TEXT, "bio":::TEXT] FROM "speaker" WHERE 1
-
--- :x unsafePerformIO $ run $ query speakers
 
 talks : Query db ["title":::TEXT, "abstract":::TEXT]
 talks = SELECT ["title":::TEXT, "abstract":::TEXT] FROM "talk" WHERE 1
@@ -41,9 +38,7 @@ program = SELECT ["name":::TEXT, "title":::TEXT, "abstract":::TEXT]
           FROM "speaker" * "talk"
           WHERE Col "id" == Col "speaker_id"
 
-
-
-printRes : Query db s -> IO ()
+printRes : {s : Schema} -> Query db s -> IO ()
 printRes q = do res <- runInit [()] (query q)
                 case res of
                   Left err => putStrLn (show err)
@@ -57,13 +52,3 @@ namespace Main
             putStrLn "Conference program"
             printRes program
             putStrLn "ok"
-
-
--- -}
--- -}
--- -}
--- -}
-
--- Local Variables:
--- idris-packages: ("lightyear" "sqlite" "effects")
--- End:

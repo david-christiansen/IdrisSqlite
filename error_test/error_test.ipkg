@@ -1,0 +1,10 @@
+package error_test
+
+modules = ErrorTest
+
+executable = test
+
+main = ErrorTest
+
+pkgs = sqlite_provider, effects, sqlite
+

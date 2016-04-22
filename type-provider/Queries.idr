@@ -9,10 +9,11 @@ import Language.Reflection
 import Language.Reflection.Errors
 import Language.Reflection.Utils
 
+%access public export
 %default total
 %language ErrorReflection
 
-namespace Row
+namespace Row0
   data Row : Schema -> Type where
     Nil : Row []
     (::) : (x : interpSql t) -> (xs : Row s) -> Row ((c:::t) :: s)
@@ -90,30 +91,29 @@ namespace Expr
 namespace Query
   %reflection
   reflectListPrf : List a -> Tactic
-  reflectListPrf [] = Refine "Here" `Seq` Solve
+  reflectListPrf [] = Refine (UN "Here") `Seq` Solve
   reflectListPrf (x :: xs)
-       = Try (Refine "Here" `Seq` Solve)
-             (Refine "There" `Seq` (Solve `Seq` reflectListPrf xs))
+       = Try (Refine (UN "Here") `Seq` Solve)
+             (Refine (UN "There") `Seq` (Solve `Seq` reflectListPrf xs))
   -- TMP HACK! FIXME!
   -- The evaluator needs a 'function case' to know its a reflection function
   -- until we propagate that information! Without this, the _ case won't get
   -- matched.
   --reflectListPrf (x ++ y) = Refine "Here" `Seq` Solve
-  reflectListPrf _ = Refine "Here" `Seq` Solve
+  reflectListPrf _ = Refine (UN "Here") `Seq` Solve
 
   %reflection
   solveHasTable : Type -> Tactic
   solveHasTable (HasTable ts n s) = reflectListPrf ts `Seq` Solve
   solveHasTable (HasTable (x ++ y) n s) = Solve
 
-
   data Tables : DB file -> Schema -> Type where
     T : (name : String) ->
-        {default tactics { byReflection solveHasTable;}
+        {default tactics { byReflection solveHasTable; }
          ok : HasTable db name s} ->
         Tables (MkDB file db) s
     (*) : (t1 : String) ->
-          {default tactics { byReflection solveHasTable; }
+          {auto
            ok : HasTable db t1 s1} ->
           Tables (MkDB file db) s2 ->
           {auto disj : isDisjoint s1 s2 = Disjoint} ->
@@ -121,7 +121,7 @@ namespace Query
 
   implicit
   toTables : (tbl : String) ->
-             {default tactics { byReflection solveHasTable; }
+             {auto
               ok : HasTable db tbl s} ->
              Tables (MkDB name db) s
   toTables tbl {ok = ok} = T tbl {ok = ok}
@@ -137,7 +137,7 @@ namespace Query
              (values : Table s) ->
              Cmd (MkDB f db)
     Delete : (from : String) -> (s : Schema) ->
-             {default tactics { byReflection solveHasTable;}
+             {default tactics { byReflection solveHasTable; }
               ok : HasTable db from s} ->
              (when : Expr s INTEGER) ->
              Cmd (MkDB f db)
@@ -164,18 +164,9 @@ namespace Query
     where cols : String
           cols = Foldable.concat . List.intersperse ", " . colNames $ proj
 
-
-
-
-
-
--- -}
--- -}
--- -}
-
 ---------- Proofs ----------
 
-Queries.Row.projectRow_lemma = proof
+Queries.Row0.projectRow_lemma = proof
   intros
   rewrite (attrEta attr)
   exact value

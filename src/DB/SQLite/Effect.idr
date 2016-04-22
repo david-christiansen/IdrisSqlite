@@ -10,17 +10,17 @@ import DB.SQLite.SQLiteCodes
 
 %dynamic "libsqlite3"
 %dynamic "sqlite3api.so"
-%access public
+%access public export
 
 data ConnectionPtr = ConnPtr Ptr
 data StmtPtr = PSPtr Ptr
 
 data DBVal = DBInt Int
            | DBText String
-           | DBFloat Float
+           | DBFloat Double
            | DBNull
 
-instance Show DBVal where
+implementation Show DBVal where
   show (DBInt i) = "DBInt " ++ show i
   show (DBText t) = "DBText " ++ show t
   show (DBFloat f) = "DBFloat " ++ show f
@@ -78,7 +78,7 @@ data QueryError = ConnectionError SQLiteCode
                 | ExecError String
                 | InternalError
 
-instance Show QueryError where
+implementation Show QueryError where
   show (ConnectionError code) = "Error connecting to database, code: " ++ (show code)
   show (BindingError (BE ap code)) = "Error binding variable, pos: " ++ (show ap) ++ ", code: " ++ (show code)
   show (StatementError code) = "Error creating prepared statement, code: " ++ (show code)
@@ -87,61 +87,56 @@ instance Show QueryError where
 
 data Sqlite : Effect where
   -- Opens a connection to the database
-  OpenDB : DBName ->
-           { () ==> either (const ()) (const SQLiteConnected) result } Sqlite (Either QueryError ())
+  OpenDB : DBName -> sig Sqlite (Either QueryError ()) () (\result => (either (const ()) (const SQLiteConnected) result))
   -- Closes the database handle
-  CloseDB : { SQLiteConnected ==> () } Sqlite ()
+  CloseDB : sig Sqlite () SQLiteConnected ()
   -- Prepares a statement, given a basic query string
-  PrepareStatement : QueryString ->
-                     { SQLiteConnected ==>
-                       either (const SQLitePSFail)
-                              (const $ SQLitePSSuccess Binding) result } Sqlite (Either QueryError ())
+  PrepareStatement : QueryString -> sig Sqlite (Either QueryError ())
+                      (SQLiteConnected)
+                       (\result => either (const SQLitePSFail)
+                              (const $ SQLitePSSuccess Binding) result)
   -- Binds arguments to the given argument position
-  BindInt : ArgPos -> Int -> { SQLitePSSuccess Binding } Sqlite ()
-  BindFloat : ArgPos -> Float ->
-              { SQLitePSSuccess Binding } Sqlite ()
-  BindText : ArgPos -> String -> Int ->
-             { SQLitePSSuccess Binding } Sqlite ()
-  BindNull : ArgPos -> { SQLitePSSuccess Binding } Sqlite ()
+  BindInt : ArgPos -> Int -> sig  Sqlite () (SQLitePSSuccess Binding)
+  BindFloat : ArgPos -> Double -> sig Sqlite () (SQLitePSSuccess Binding)
+  BindText : ArgPos -> String -> Int -> sig Sqlite () (SQLitePSSuccess Binding)
+  BindNull : ArgPos -> sig Sqlite () (SQLitePSSuccess Binding)
 
   -- Checks to see whether all the binds were successful, if not then fails with the bind error
-  FinishBind : {SQLitePSSuccess Binding ==>
-                maybe (SQLitePSSuccess Bound) (const SQLiteFinishBindFail) result } Sqlite (Maybe QueryError)
+  FinishBind : sig Sqlite (Maybe QueryError) (SQLitePSSuccess Binding) (\result => maybe (SQLitePSSuccess Bound) (const SQLiteFinishBindFail) result)
 
   -- Executes the statement, and fetches the first row
-  ExecuteStatement : { SQLitePSSuccess Bound ==>
-                       if hasMoreRows result
+  ExecuteStatement : sig Sqlite (StepResult) (SQLitePSSuccess Bound)
+                       (\result => if hasMoreRows result
                          then SQLiteExecuting ValidRow
-                         else SQLiteExecuting InvalidRow } Sqlite StepResult
+                         else SQLiteExecuting InvalidRow)
 
-  RowStep : { SQLiteExecuting ValidRow ==>
-              if hasMoreRows result
+  RowStep : sig Sqlite (StepResult) (SQLiteExecuting ValidRow)
+              (\result => if hasMoreRows result
                 then SQLiteExecuting ValidRow
-                else SQLiteExecuting InvalidRow } Sqlite StepResult
+                else SQLiteExecuting InvalidRow)
 
   -- We need two separate effects, but this is entirely non-user-facing due to
   -- if_valid in the wrapper function
-  Reset : { SQLiteExecuting state ==>
-            if hasMoreRows result
+  Reset : sig Sqlite (StepResult) (SQLiteExecuting state)
+            (\result => if hasMoreRows result
               then SQLiteExecuting ValidRow
-              else SQLiteExecuting InvalidRow} Sqlite StepResult
+              else SQLiteExecuting InvalidRow)
 
   -- Column access functions
-  GetColumnName : Column -> { SQLiteExecuting ValidRow } Sqlite String
-  GetColumnDataSize : Column -> { SQLiteExecuting ValidRow } Sqlite Int
-  GetColumnText : Column -> { SQLiteExecuting ValidRow } Sqlite String
-  GetColumnInt : Column -> { SQLiteExecuting ValidRow } Sqlite Int
-  GetColumnFloat : Column -> { SQLiteExecuting ValidRow } Sqlite Float
-  IsColumnNull : Column -> { SQLiteExecuting ValidRow } Sqlite Bool
+  GetColumnName : Column -> sig  Sqlite String (SQLiteExecuting ValidRow)
+  GetColumnDataSize : Column -> sig  Sqlite Int (SQLiteExecuting ValidRow)
+  GetColumnText : Column -> sig  Sqlite String (SQLiteExecuting ValidRow)
+  GetColumnInt : Column -> sig Sqlite Int (SQLiteExecuting ValidRow)
+  GetColumnFloat : Column -> sig Sqlite Double (SQLiteExecuting ValidRow)
+  IsColumnNull : Column -> sig Sqlite Bool (SQLiteExecuting ValidRow)
 
   -- Finalisation Functions
-  Finalise : { SQLiteExecuting s ==> SQLiteConnected } Sqlite ()
+  Finalise : sig Sqlite () (SQLiteExecuting s) SQLiteConnected
 
 
   -- Cleanup functions to handle error states
-  CleanupPSFail : { SQLitePSFail ==> () } Sqlite ()
-  CleanupBindFail : { SQLiteFinishBindFail ==> () } Sqlite ()
-
+  CleanupPSFail : sig Sqlite () SQLitePSFail  ()  
+  CleanupBindFail : sig  Sqlite () SQLiteFinishBindFail ()
 
 
 private
@@ -165,7 +160,7 @@ foreignClose (ConnPtr c) = do foreign FFI_C "sqlite3_close_idr" (Ptr -> IO Int) 
 
 -- That's the painful bit done, since exception branching will allow us to not have to do
 -- the ugliness of pass-through handlers
-instance Handler Sqlite IO where
+implementation Handler Sqlite IO where
   handle () (OpenDB file) k = do
     ff <- foreign FFI_C "sqlite3_open_idr" (String -> IO Ptr) file
     is_null <- nullPtr ff
@@ -192,7 +187,7 @@ instance Handler Sqlite IO where
                              k () (SQLiteBindFail (ConnPtr conn) (PSPtr res) (BE pos err))
 
   handle (SQLitePS (ConnPtr conn) (PSPtr res)) (BindFloat pos f) k = do
-    res <- foreign FFI_C "sqlite3_bind_double_idr" (Ptr -> Int -> Float -> IO Ptr) conn pos f
+    res <- foreign FFI_C "sqlite3_bind_double_idr" (Ptr -> Int -> Double -> IO Ptr) conn pos f
     is_null <- nullPtr res
     if (not is_null) then k () (SQLitePS (ConnPtr conn) (PSPtr res))
                      else do err <- foreignGetError (ConnPtr conn)
@@ -259,7 +254,7 @@ instance Handler Sqlite IO where
     k res (SQLiteE (ConnPtr c) (PSPtr p))
 
   handle (SQLiteE (ConnPtr c) (PSPtr p)) (GetColumnFloat i) k = do
-    res <- foreign FFI_C "sqlite3_column_double_idr" (Ptr -> Int -> IO Float) c i
+    res <- foreign FFI_C "sqlite3_column_double_idr" (Ptr -> Int -> IO Double) c i
     k res (SQLiteE (ConnPtr c) (PSPtr p))
 
   handle (SQLiteE (ConnPtr c) (PSPtr p)) (GetColumnText i) k = do
@@ -309,27 +304,26 @@ instance Handler Sqlite IO where
 SQLITE : Type -> EFFECT
 SQLITE t = MkEff t Sqlite
 {- User-facing functions -}
-openDB : DBName -> { [SQLITE ()] ==>
-                     [SQLITE (either (const ()) (const SQLiteConnected) result)] } Eff (Either QueryError ())
+openDB : DBName ->  Eff (Either QueryError ()) [SQLITE ()]
+                     (\result => [SQLITE (either (const ()) (const SQLiteConnected) result)])
 openDB name = call $ OpenDB name
 
-closeDB : { [SQLITE (SQLiteConnected)] ==> [SQLITE ()] } Eff ()
+closeDB : Eff () [SQLITE (SQLiteConnected)] [SQLITE ()]
 closeDB = call CloseDB
 
-prepareStatement : QueryString ->
-                   { [SQLITE SQLiteConnected] ==>
-                     [SQLITE ( either (const SQLitePSFail)
-                                      (const $ SQLitePSSuccess Binding) result)] } Eff (Either QueryError ())
+prepareStatement : QueryString -> Eff (Either QueryError ())
+                    [SQLITE SQLiteConnected]
+                    (\result => [SQLITE ( either (const SQLitePSFail)
+                                      (const $ SQLitePSSuccess Binding) result)])
 prepareStatement stmt = call $ PrepareStatement stmt
 
-bindInt : ArgPos -> Int ->
-          { [SQLITE (SQLitePSSuccess Binding)] } Eff ()
+bindInt : ArgPos -> Int -> Eff () [SQLITE (SQLitePSSuccess Binding)]
 bindInt pos i = call $ BindInt pos i
 
-bindFloat : ArgPos -> Float -> { [SQLITE (SQLitePSSuccess Binding)] } Eff ()
+bindFloat : ArgPos -> Double -> Eff () [SQLITE (SQLitePSSuccess Binding)]
 bindFloat pos f = call $ BindFloat pos f
 
-bindText : ArgPos -> String -> { [SQLITE (SQLitePSSuccess Binding)] } Eff ()
+bindText : ArgPos -> String -> Eff () [SQLITE (SQLitePSSuccess Binding)]
 bindText pos str = call $ BindText pos str str_len
   where natToInt : Nat -> Int
         natToInt Z = 0
@@ -338,59 +332,58 @@ bindText pos str = call $ BindText pos str str_len
         str_len : Int
         str_len = natToInt (length str)
 
-bindNull : ArgPos -> { [SQLITE (SQLitePSSuccess Binding)] } Eff ()
+bindNull : ArgPos -> Eff () [SQLITE (SQLitePSSuccess Binding)]
 bindNull pos = call $ BindNull pos
 
-finishBind : { [SQLITE (SQLitePSSuccess Binding)] ==>
-               [SQLITE (maybe (SQLitePSSuccess Bound) (const SQLiteFinishBindFail) result)] } Eff (Maybe QueryError)
+finishBind : Eff (Maybe QueryError) [SQLITE (SQLitePSSuccess Binding)]
+               (\result => [SQLITE (maybe (SQLitePSSuccess Bound) (const SQLiteFinishBindFail) result)])
 finishBind = call FinishBind
 
-nextRow : { [SQLITE (SQLiteExecuting ValidRow)] ==>
-            [SQLITE (if hasMoreRows result
+nextRow : Eff StepResult [SQLITE (SQLiteExecuting ValidRow)]
+            (\result => [SQLITE (if hasMoreRows result
                        then SQLiteExecuting ValidRow
-                       else SQLiteExecuting InvalidRow)] } Eff StepResult
+                       else SQLiteExecuting InvalidRow)])
 nextRow = call RowStep
 
-reset : { [SQLITE (SQLiteExecuting state)] ==>
-          [SQLITE (if hasMoreRows result
+reset : Eff StepResult [SQLITE (SQLiteExecuting state)]
+          (\result => [SQLITE (if hasMoreRows result
                      then SQLiteExecuting ValidRow
-                     else SQLiteExecuting InvalidRow)] } Eff StepResult
+                     else SQLiteExecuting InvalidRow)])
 reset = call Reset
 
 
-getColumnName : Column -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff String
+getColumnName : Column -> Eff String [SQLITE (SQLiteExecuting ValidRow)]
 getColumnName col = call $ GetColumnName col
 
-getColumnText : Column -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff String
+getColumnText : Column -> Eff String [SQLITE (SQLiteExecuting ValidRow)]
 getColumnText col = call $ GetColumnText col
 
-getColumnInt : Column -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff Int
+getColumnInt : Column -> Eff Int [SQLITE (SQLiteExecuting ValidRow)]
 getColumnInt col = call $ GetColumnInt col
 
-getColumnFloat : Column -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff Float
+getColumnFloat : Column -> Eff Double [SQLITE (SQLiteExecuting ValidRow)]
 getColumnFloat col = call $ GetColumnFloat col
 
-isColumnNull : Column -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff Bool
+isColumnNull : Column -> Eff Bool [SQLITE (SQLiteExecuting ValidRow)]
 isColumnNull col = call $ IsColumnNull col
 
-getColumnDataSize : Column -> { [SQLITE (SQLiteExecuting ValidRow)] } Eff Int
+getColumnDataSize : Column -> Eff Int [SQLITE (SQLiteExecuting ValidRow)]
 getColumnDataSize col = call $ GetColumnDataSize col
 
-finalise : { [SQLITE (SQLiteExecuting s)] ==>
-             [SQLITE SQLiteConnected] } Eff ()
+finalise : Eff () [SQLITE (SQLiteExecuting s)] [SQLITE SQLiteConnected]
 finalise = call Finalise
 
-cleanupPSFail : { [SQLITE (SQLitePSFail)] ==> [SQLITE ()] } Eff ()
+cleanupPSFail : Eff () [SQLITE (SQLitePSFail)] [SQLITE ()]
 cleanupPSFail = call CleanupPSFail
 
-cleanupBindFail : { [SQLITE (SQLiteFinishBindFail)] ==> [SQLITE ()] } Eff ()
+cleanupBindFail :  Eff () [SQLITE (SQLiteFinishBindFail)] [SQLITE ()]
 cleanupBindFail = call CleanupBindFail
 
 -- Just makes it a tad nicer to write
-executeStatement : { [SQLITE (SQLitePSSuccess Bound)] ==>
-                     [SQLITE (if hasMoreRows result
+executeStatement : Eff StepResult [SQLITE (SQLitePSSuccess Bound)]
+                     (\result => [SQLITE (if hasMoreRows result
                                 then SQLiteExecuting ValidRow
-                                else SQLiteExecuting InvalidRow)] } Eff StepResult
+                                else SQLiteExecuting InvalidRow)])
 executeStatement = call ExecuteStatement
 
 
@@ -399,7 +392,7 @@ getQueryError (Left qe) = qe
 getQueryError _ = InternalError
 
 total
-multiBind' : List (Int, DBVal) -> { [SQLITE (SQLitePSSuccess Binding)] } Eff ()
+multiBind' : List (Int, DBVal) -> Eff () [SQLITE (SQLitePSSuccess Binding)]
 multiBind' [] = Effects.pure ()
 multiBind' ((pos, (DBInt i)) :: xs) = do bindInt pos i
                                          multiBind' xs
@@ -411,19 +404,18 @@ multiBind' ((pos, DBNull) :: xs) = do bindNull pos
                                       multiBind' xs
 -- Binds multiple values within a query
 
-multiBind : List (Int, DBVal) ->
-            { [SQLITE (SQLitePSSuccess Binding)] ==>
-              [SQLITE (maybe (SQLitePSSuccess Bound) (const SQLiteFinishBindFail) result)] }
-            Eff (Maybe QueryError)
+multiBind : List (Int, DBVal) -> Eff (Maybe QueryError)
+                 [SQLITE (SQLitePSSuccess Binding)]
+                 (\result => [SQLITE (maybe (SQLitePSSuccess Bound) (const SQLiteFinishBindFail) result)])
+            
 multiBind vals = do
   multiBind' vals
   finishBind
 
 
 
-getRowCount' : StepResult ->
-               { [SQLITE (SQLiteExecuting s)] ==> [SQLITE ()] }
-               Eff (Either QueryError Int)
+getRowCount' : StepResult -> Eff (Either QueryError Int) [SQLITE (SQLiteExecuting s)] [SQLITE ()]
+               
 getRowCount' NoMoreRows   = do finalise
                                closeDB
                                return $ Left (ExecError "Unable to get row count")
@@ -446,7 +438,7 @@ getBindError (Just (BindingError be)) = (BindingError be)
 getBindError _ = InternalError
 
 
-getRowCount : { [SQLITE SQLiteConnected] ==> [SQLITE ()] } Eff (Either QueryError Int)
+getRowCount : Eff (Either QueryError Int) [SQLITE SQLiteConnected] [SQLITE ()] 
 getRowCount = do
   let insert_id_sql = "SELECT last_insert_rowid()"
   sql_prep_res <- prepareStatement insert_id_sql
@@ -470,7 +462,7 @@ getRowCount = do
 executeInsert : String ->
                 String ->
                 List (Int, DBVal) ->
-                { [SQLITE ()] } Eff (Either QueryError Int)
+                Eff (Either QueryError Int) [SQLITE ()]
 executeInsert db_name query bind_vals =
   do db_res <- openDB db_name
      case db_res of
@@ -487,9 +479,8 @@ executeInsert db_name query bind_vals =
                                     return (Left err)
                      Nothing  => executeIt
   -- split out to make typechecking faster
-  where executeIt : { [SQLITE (SQLitePSSuccess Bound)] ==>
-                      [SQLITE ()] }
-                    Eff (Either QueryError Int)
+  where executeIt : Eff (Either QueryError Int) [SQLITE (SQLitePSSuccess Bound)] [SQLITE ()]
+                    
         executeIt =
           do er_1 <- executeStatement
              case er_1 of
@@ -507,9 +498,8 @@ executeInsert db_name query bind_vals =
 
 -- Helper functions for selection from a DB
 partial
-collectResults : ({ [SQLITE (SQLiteExecuting ValidRow)] } Eff (List DBVal)) ->
-                 { [SQLITE (SQLiteExecuting ValidRow)] ==>
-                   [SQLITE (SQLiteExecuting InvalidRow)] } Eff ResultSet
+collectResults : (Eff (List DBVal) [SQLITE (SQLiteExecuting ValidRow)]) ->
+                 Eff ResultSet [SQLITE (SQLiteExecuting ValidRow)] [SQLITE (SQLiteExecuting InvalidRow)]
 collectResults fn =
   do results <- fn
      case !nextRow of
@@ -524,8 +514,8 @@ collectResults fn =
 -- a function to process the returned data,
 partial
 executeSelect : (db_name : String) -> (q : String) -> List (Int, DBVal) ->
-                ({ [SQLITE (SQLiteExecuting ValidRow)] } Eff (List DBVal)) ->
-                { [SQLITE ()] } Eff (Either QueryError ResultSet)
+                (Eff (List DBVal) [SQLITE (SQLiteExecuting ValidRow)]) ->
+                Eff (Either QueryError ResultSet) [SQLITE ()]
 executeSelect db_name q bind_vals fn =
   do Right () <- openDB db_name | Left err => return (Left err)
      Right () <- prepareStatement q | Left err => do cleanupPSFail
@@ -549,10 +539,3 @@ executeSelect db_name q bind_vals fn =
                         closeDB
                         return $ Right []
 
--- -}
--- -}
--- -}
-
--- Local Variables:
--- idris-packages: ("effects" "sqlite")
--- End:

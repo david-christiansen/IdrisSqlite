@@ -1,0 +1,6 @@
+package sqlite_provider
+
+modules = ErrorHandlers, Schema, Database, Provider, SQLiteTypes, ParserHack, Queries
+
+pkgs = effects, sqlite, lightyear
+

@@ -16,12 +16,9 @@ import SQLiteTypes
 %include C "sqlite3api.h"
 %lib C "sqlite3"
 
-
-
-
+%auto_implicits off
 %provide (db : DB "test.sqlite")
-  with run (getSchemas "test.sqlite")
-
+  with run {m = IO} (getSchemas "test.sqlite")
 
 
 speakers : Query db ["name":::TEXT, "bio":::NULLABLE TEXT]
@@ -29,13 +26,10 @@ speakers = SELECT ["name":::TEXT, "bio":::NULLABLE TEXT]
            FROM "speaker"
            WHERE 1
 
--- :x unsafePerformIO $ run $ query speakers
-
 talks : Query db ["title":::TEXT, "abstract":::TEXT]
 talks = SELECT ["title":::TEXT, "abstract":::TEXT]
         FROM "talk"
         WHERE 1
-
 
 program : Query db ["name":::TEXT, "title":::TEXT, "abstract":::TEXT]
 program = SELECT ["name":::TEXT, "title":::TEXT, "abstract":::TEXT]
@@ -43,12 +37,12 @@ program = SELECT ["name":::TEXT, "title":::TEXT, "abstract":::TEXT]
           WHERE Col "id" == Col "speaker"
 
 
-
-printRes : Query db s -> IO ()
-printRes q = do res <- runInit [()] (query q)
+printRes : {s : Schema} -> Query db s -> IO ()
+printRes q = do res <- runInit {m = IO} [()] (query q)
                 case res of
                   Left err => putStrLn (show err)
                   Right table => putStrLn (showTable _ table)
+
 namespace Main
   main : IO ()
   main = do putStrLn "The speakers are:"
@@ -60,11 +54,3 @@ namespace Main
             putStrLn "ok"
 
 
--- -}
--- -}
--- -}
--- -}
-
--- Local Variables:
--- idris-packages: ("lightyear" "sqlite" "effects")
--- End:

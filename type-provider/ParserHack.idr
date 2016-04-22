@@ -2,6 +2,8 @@ module ParserHack
 import Schema
 import SQLiteTypes
 
+%access export
+
 people : String
 people = "CREATE TABLE \"people\" (\"id\" INTEGER PRIMARY KEY  AUTOINCREMENT  NOT NULL  UNIQUE , \"name\" VARCHAR NOT NULL , \"age\" INTEGER)"
 

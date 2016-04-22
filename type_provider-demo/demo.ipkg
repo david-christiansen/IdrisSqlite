@@ -1,0 +1,10 @@
+package demo
+
+modules = Test
+
+executable = test
+
+main = Test
+
+pkgs = sqlite_provider, effects, sqlite
+
