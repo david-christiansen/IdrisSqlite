@@ -9,18 +9,18 @@ testInsert : String -> Int -> Eff (Either QueryError ()) [SQLITE ()]
 testInsert name age =
   do open_db <- openDB "test.db"
      case open_db of
-       Left err => return $ Left err
+       Left err => pure $ Left err
        Right () =>
          do let sql = "INSERT INTO `test` (`name`, `age`) VALUES (?, ?);"
             prep_res <- prepareStatement sql
             case prep_res of
-              Left err => do cleanupPSFail ; return $ Left err
+              Left err => do cleanupPSFail ; pure $ Left err
               Right () =>
                 do bindText 1 name
                    bindInt 2 age
                    bind_res <- finishBind
                    case bind_res of
-                     Just err => do cleanupBindFail ; return $ Left err
+                     Just err => do cleanupBindFail ; pure $ Left err
                      Nothing =>
                        case !executeStatement of
                          Unstarted => do finalise
@@ -44,7 +44,7 @@ testSelect =
   executeSelect "test.db" "SELECT `name`, `sql` FROM `sqlite_master`;" [] $
   do name <- getColumnText 0
      sql <- getColumnText 1
-     return [DBText name, DBText sql]
+     pure [DBText name, DBText sql]
 
 
 namespace Main
