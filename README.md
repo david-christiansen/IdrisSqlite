@@ -3,39 +3,41 @@ SQLite bindings for Idris
 
 These SQLite bindings are forked from IdrisWeb.
 
-To install:
+## Prequisites
+* Idris builit with libffi support (if not rebuild it so - you will need to create a custom.mk file - copy custom.mk-alldeps and edit it)
+* Sqlite header files
+* gc header files
 
-Make sure your idris command was built with libffi support (if not rebuild it so - you will need to create a custom.mk file - copy custom.mk-alldeps and edit it)
+## To install:
 
-idris --install sqlite.ipkg
+`idris --install sqlite.ipkg`
 
 to test installation:
 
-idris --build sqlite_test.ipkg
-./sqlite_test
+`idris --build sqlite_test.ipkg`
+`./sqlite_test`
 
 expected output is:
-
+```
 Done
 [[DBText "test", DBText "CREATE TABLE test (name INT, age INT)"]]
+```
+## To install the type provider:
+`cd type-provider`
 
-To install the type provider:
+`idris --install sqlite_provider.ipkg`
 
-cd type-provider
+## To run the type-provider demo:
 
-idris --install sqlite_provider.ipkg
+`cd ../type_provider-demo`
 
-to run the type-provider demo:
+`idris --build demo.ipkg`
 
-cd ../type_provider-demo
+`./test`
 
-idris --build demo.ipkg
+### The expected output is:
 
-./test
-
-The expected output is:
-
-
+```
 The speakers are:
 name|bio|
 "David Christiansen"|"PhD student at ITU"|
@@ -55,15 +57,17 @@ name|title|abstract|
 "Lots of Speaking"|"An Actuarial DSL"|"Dependently typed life insurance"|
 
 ok
+```
 
+### To run the error test demo:
 
-To run the error test demo:
+`cd ../error_test`
 
-cd ../error_test
-idris --build error_test.ipkg
+`idris --build error_test.ipkg`
 
-The expected output is:
+### The expected output is:
 
+```
 Type checking ./ErrorTest.idr
 ErrorTest.idr:30:12-32:1:
 When checking right hand side of speakers with expected type
@@ -91,3 +95,4 @@ When checking argument ok to constructor Queries.Expr.Col:
                 "title" ::: TEXT 
                 "abstract" ::: TEXT 
                 "speaker" ::: INTEGER
+```
