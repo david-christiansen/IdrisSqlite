@@ -4,38 +4,42 @@ SQLite bindings for Idris
 These SQLite bindings are forked from IdrisWeb.
 
 ## Prequisites
-* Idris builit with libffi support (if not rebuild it so - you will need to create a custom.mk file - copy custom.mk-alldeps and edit it)
-* Sqlite header files
+* Idris built with libffi support (if not rebuild it so - you will need to create a custom.mk file - copy custom.mk-alldeps and edit it)
+* SQLite header files
 * gc header files
 
 ## To install:
 
-`idris --install sqlite.ipkg`
+```
+idris --install sqlite.ipkg
+```
 
-to test installation:
+To test installation:
 
-`idris --build sqlite_test.ipkg`
-`./sqlite_test`
-
-expected output is:
+```
+idris --build sqlite_test.ipkg
+./sqlite_test
+```
+The expected output is:
 ```
 Done
 [[DBText "test", DBText "CREATE TABLE test (name INT, age INT)"]]
 ```
 ## To install the type provider:
-`cd type-provider`
-
-`idris --install sqlite_provider.ipkg`
+```
+cd type-provider
+idris --install sqlite_provider.ipkg
+```
 
 ## To run the type-provider demo:
 
-`cd ../type_provider-demo`
+```
+cd type_provider-demo
+idris --build demo.ipkg
+./test
+```
 
-`idris --build demo.ipkg`
-
-`./test`
-
-### The expected output is:
+The expected output is:
 
 ```
 The speakers are:
@@ -59,13 +63,14 @@ name|title|abstract|
 ok
 ```
 
-### To run the error test demo:
+## To run the error test demo:
 
-`cd ../error_test`
+```
+cd error_test
+idris --build error_test.ipkg
+```
 
-`idris --build error_test.ipkg`
-
-### The expected output is:
+The expected output is:
 
 ```
 Type checking ./ErrorTest.idr
