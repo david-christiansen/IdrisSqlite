@@ -151,12 +151,12 @@ foreignNextRow (ConnPtr ptr) =
 private
 foreignFinalise : ConnectionPtr -> IO ()
 foreignFinalise (ConnPtr c) = do foreign FFI_C "sqlite3_finalize_idr" (Ptr -> IO Int) c
-                                 return ()
+                                 pure ()
 
 private
 foreignClose : ConnectionPtr -> IO ()
 foreignClose (ConnPtr c) = do foreign FFI_C "sqlite3_close_idr" (Ptr -> IO Int) c
-                              return ()
+                              pure ()
 
 -- That's the painful bit done, since exception branching will allow us to not have to do
 -- the ugliness of pass-through handlers
@@ -418,20 +418,20 @@ getRowCount' : StepResult -> Eff (Either QueryError Int) [SQLITE (SQLiteExecutin
                
 getRowCount' NoMoreRows   = do finalise
                                closeDB
-                               return $ Left (ExecError "Unable to get row count")
+                               pure $ Left (ExecError "Unable to get row count")
 getRowCount' StepFail     = do finalise
                                closeDB
-                               return $ Left (ExecError "Error whilst getting row count")
+                               pure $ Left (ExecError "Error whilst getting row count")
 getRowCount' {s=ValidRow} StepComplete = do last_insert_id <- getColumnInt 0
                                             finalise
                                             closeDB
-                                            return $ Right last_insert_id
+                                            pure $ Right last_insert_id
 getRowCount' {s=InvalidRow} StepComplete = do finalise
                                               closeDB
-                                              return $ Left (ExecError "Invalid row")
+                                              pure $ Left (ExecError "Invalid row")
 getRowCount' Unstarted    = do finalise
                                closeDB
-                               return $ Left (ExecError "Not started")
+                               pure $ Left (ExecError "Not started")
 
 getBindError : Maybe QueryError -> QueryError
 getBindError (Just (BindingError be)) = (BindingError be)
@@ -444,13 +444,13 @@ getRowCount = do
   sql_prep_res <- prepareStatement insert_id_sql
   case sql_prep_res of
     Left err => do cleanupPSFail
-                   return (Left err)
+                   pure (Left err)
     Right () =>
       do bind_res_2 <- finishBind
          case bind_res_2 of
            Just err => do let be = getBindError bind_res_2
                           cleanupBindFail
-                          return $ Left be
+                          pure $ Left be
            Nothing =>
              do exec_res <- executeStatement
                 case exec_res of
@@ -466,17 +466,17 @@ executeInsert : String ->
 executeInsert db_name query bind_vals =
   do db_res <- openDB db_name
      case db_res of
-       Left err => return (Left err)
+       Left err => pure (Left err)
        Right () =>
          do ps_res <- prepareStatement query
             case ps_res of
               Left err => do cleanupPSFail
-                             return (Left err)
+                             pure (Left err)
               Right () =>
                 do bind_res <- multiBind bind_vals
                    case bind_res of
                      Just err => do cleanupBindFail
-                                    return (Left err)
+                                    pure (Left err)
                      Nothing  => executeIt
   -- split out to make typechecking faster
   where executeIt : Eff (Either QueryError Int) [SQLITE (SQLitePSSuccess Bound)] [SQLITE ()]
@@ -486,10 +486,10 @@ executeInsert db_name query bind_vals =
              case er_1 of
                StepFail => do finalise {s=ValidRow}
                               closeDB
-                              return $ Left (ExecError "Error inserting")
+                              pure $ Left (ExecError "Error inserting")
                Unstarted => do finalise {s=ValidRow}
                                closeDB
-                               return $ Left (ExecError "Internal error: 'unstarted' after execution")
+                               pure $ Left (ExecError "Internal error: 'unstarted' after execution")
                NoMoreRows => do finalise {s=InvalidRow}
                                 getRowCount
                StepComplete => do finalise {s=ValidRow}
@@ -503,10 +503,10 @@ collectResults : (Eff (List DBVal) [SQLITE (SQLiteExecuting ValidRow)]) ->
 collectResults fn =
   do results <- fn
      case !nextRow of
-       Unstarted => return $ results :: !(collectResults fn)
-       StepFail => return $ results :: !(collectResults fn)
-       StepComplete => return $ results :: !(collectResults fn)
-       NoMoreRows => return [results]
+       Unstarted => pure $ results :: !(collectResults fn)
+       StepFail => pure $ results :: !(collectResults fn)
+       StepComplete => pure $ results :: !(collectResults fn)
+       NoMoreRows => pure [results]
 
 
 -- Convenience function to abstract around some of the boilerplate code.
@@ -517,25 +517,25 @@ executeSelect : (db_name : String) -> (q : String) -> List (Int, DBVal) ->
                 (Eff (List DBVal) [SQLITE (SQLiteExecuting ValidRow)]) ->
                 Eff (Either QueryError ResultSet) [SQLITE ()]
 executeSelect db_name q bind_vals fn =
-  do Right () <- openDB db_name | Left err => return (Left err)
+  do Right () <- openDB db_name | Left err => pure (Left err)
      Right () <- prepareStatement q | Left err => do cleanupPSFail
-                                                     return $ Left err
+                                                     pure $ Left err
      Nothing <- multiBind bind_vals | Just err => do cleanupBindFail
-                                                     return $ Left err
+                                                     pure $ Left err
      case !executeStatement of
        Unstarted => do res <- collectResults fn
                        finalise
                        closeDB
-                       return $ Right res
+                       pure $ Right res
        StepFail => do res <- collectResults fn
                       finalise
                       closeDB
-                      return $ Right res
+                      pure $ Right res
        StepComplete => do res <- collectResults fn
                           finalise
                           closeDB
-                          return $ Right res
+                          pure $ Right res
        NoMoreRows => do finalise
                         closeDB
-                        return $ Right []
+                        pure $ Right []
 

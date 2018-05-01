@@ -12,6 +12,7 @@ import Language.Reflection.Utils
 %access public export
 %default total
 %language ErrorReflection
+%language FirstClassReflection
 
 namespace Row0
   data Row : Schema -> Type where

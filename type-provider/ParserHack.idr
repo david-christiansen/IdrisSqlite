@@ -90,7 +90,7 @@ toSchema : List (String, String, Bool) -> Maybe Schema
 toSchema [] = Just []
 toSchema ((colName, colT, nullable)::cols) = do tp <- getType (toUpper colT) nullable
                                                 rest <- toSchema cols
-                                                return ((colName:::tp) :: rest)
+                                                pure ((colName:::tp) :: rest)
     where getType : String -> Bool -> Maybe SQLiteType
           getType t         True  = map NULLABLE (getType t False)
           getType "VARCHAR" False = Just TEXT
