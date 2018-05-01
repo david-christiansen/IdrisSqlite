@@ -71,7 +71,7 @@ query {file=fn} q =
                        pure $ Left err
         Right () =>
           case !finishBind of
-            Just err => do cleanupBindFail ; return $ Left err
+            Just err => do cleanupBindFail ; pure $ Left err
             Nothing =>
               case !executeStatement of
                 Unstarted => do rs <- collectRows _
