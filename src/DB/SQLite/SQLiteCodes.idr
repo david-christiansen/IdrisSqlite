@@ -1,7 +1,8 @@
 module DB.SQLite.SQLiteCodes
 -- Status codes for SQLite
 
-%access public
+%access public export
+
 %default total
 
 SQLiteCode : Type
